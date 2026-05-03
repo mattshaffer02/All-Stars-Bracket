@@ -271,7 +271,7 @@
 <div id="toast"></div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbz5-sVJha93_6Tdb2jPb8eTKEARt0aocWzXoC7bu3z2QrUf3FU2aczrWwAM2MMrqEo8Uw/exec";
+const API = "https://script.google.com/macros/s/AKfycbyhaF4vw2qmVcqDTvm2v4rJEdre328UxmizfklyRbgW0bxSQlXzWwe6ziltCnwE0PPXNg/exec";
 const ADMIN_PASSWORD = "rpdr2026"; // change this to whatever you like
 
 const QUEENS = {
@@ -344,10 +344,11 @@ async function apiFetch(params) {
 }
 
 async function apiPost(body) {
-  const r = await fetch(API, {
-    method:"POST", body: JSON.stringify(body),
-    headers:{"Content-Type":"application/json"}
+  const params = new URLSearchParams({ action: body.action });
+  Object.entries(body).forEach(([k,v]) => {
+    if (k !== "action") params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
   });
+  const r = await fetch(API + "?" + params.toString());
   return r.json();
 }
 
