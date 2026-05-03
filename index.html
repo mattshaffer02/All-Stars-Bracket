@@ -275,37 +275,37 @@ const API = "https://script.google.com/macros/s/AKfycbyhaF4vw2qmVcqDTvm2v4rJEdre
 const ADMIN_PASSWORD = "rpdr2026"; // change this to whatever you like
 
 const QUEENS = {
-  Pink: [
-    { id:"akeria",  name:"A'Keria C. Davenport", season:"S11, AS6" },
-    { id:"april",   name:"April Carrión",         season:"S6" },
-    { id:"crystal", name:"Crystal Methyd",         season:"S12" },
-    { id:"jasmine", name:"Jasmine Kennedie",        season:"S14" },
-    { id:"kennedy", name:"Kennedy Davenport",       season:"S7, AS3" },
-    { id:"morgan",  name:"Morgan McMichaels",       season:"S2, AS3" },
-  ],
   Orange: [
-    { id:"aura",      name:"Aura Mayari",           season:"S15" },
-    { id:"dawn",      name:"Dawn",                  season:"S16" },
-    { id:"hershii",   name:"Hershii LiqCour-Jeté",  season:"S16" },
-    { id:"joey",      name:"Joey Jay",              season:"S13" },
-    { id:"lucky",     name:"Lucky Starzzz",         season:"S17" },
-    { id:"vivacious", name:"Vivacious",             season:"S6" },
+    { id:"akeria",   name:"A'Keria C. Davenport", season:"S11, AS6" },
+    { id:"dawn",     name:"Dawn",                  season:"S16" },
+    { id:"lucky",    name:"Lucky Starzzz",         season:"S17" },
+    { id:"morgan",   name:"Morgan McMichaels",     season:"S2, AS3" },
+    { id:"morphine", name:"Morphine Love Dion",    season:"S16" },
+    { id:"mystique", name:"Mystique Summers",      season:"S2" },
+  ],
+  Pink: [
+    { id:"april",     name:"April Carrión",        season:"S6" },
+    { id:"aura",      name:"Aura Mayari",          season:"S15" },
+    { id:"crystal",   name:"Crystal Methyd",       season:"S12" },
+    { id:"salina",    name:"Salina EsTitties",     season:"S15" },
+    { id:"silky",     name:"Silky Nutmeg Ganache", season:"S11, AS6" },
+    { id:"vivacious", name:"Vivacious",            season:"S6" },
   ],
   Purple: [
-    { id:"morphine",  name:"Morphine Love Dion",    season:"S16" },
-    { id:"mystique",  name:"Mystique Summers",      season:"S2" },
-    { id:"salina",    name:"Salina EsTitties",      season:"S15" },
-    { id:"sam",       name:"Sam Star",              season:"S17" },
-    { id:"shuga",     name:"Shuga Cain",            season:"S11" },
-    { id:"silky",     name:"Silky Nutmeg Ganache",  season:"S11, AS6" },
+    { id:"hershii",  name:"Hershii LiqCour-Jeté",  season:"S16" },
+    { id:"jasmine",  name:"Jasmine Kennedie",       season:"S14" },
+    { id:"joey",     name:"Joey Jay",               season:"S13" },
+    { id:"kennedy",  name:"Kennedy Davenport",      season:"S7, AS3" },
+    { id:"sam",      name:"Sam Star",               season:"S17" },
+    { id:"shuga",    name:"Shuga Cain",             season:"S11" },
   ],
 };
 
 const ALL_QUEENS = [...QUEENS.Pink, ...QUEENS.Orange, ...QUEENS.Purple];
 
 const BCOLORS = {
-  Pink:   { bg:"var(--pink)",   light:"var(--pink-light)",   dark:"var(--pink-dark)",   text:"var(--pink-dark)" },
   Orange: { bg:"var(--orange)", light:"var(--orange-light)", dark:"var(--orange-dark)", text:"var(--orange-dark)" },
+  Pink:   { bg:"var(--pink)",   light:"var(--pink-light)",   dark:"var(--pink-dark)",   text:"var(--pink-dark)" },
   Purple: { bg:"var(--purple)", light:"var(--purple-light)", dark:"var(--purple-dark)", text:"var(--purple-dark)" },
 };
 
