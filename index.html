@@ -85,11 +85,14 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
 .tag { padding:6px 12px; border-radius:20px; border:2px solid; cursor:pointer; font-size:13px; font-weight:600; transition:all .15s; }
 
 /* LEADERBOARD */
-.lb-row { display:flex; justify-content:space-between; align-items:center; background:#fff; border-radius:18px; padding:16px 20px; margin-bottom:12px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+.lb-row { display:flex; justify-content:space-between; align-items:flex-start; background:#fff; border-radius:18px; padding:16px 20px; margin-bottom:12px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
 .lb-rank { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; margin-right:14px; flex-shrink:0; }
-.lb-score { font-family:‘Playfair Display’,serif; font-size:28px; font-weight:800; background:linear-gradient(135deg,var(–pink),var(–purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.lb-score { font-family:‘Playfair Display’,serif; font-size:32px; font-weight:800; color:var(–purple); line-height:1; }
+.lb-score-label { font-size:11px; color:#bbb; text-align:center; margin-top:2px; }
 .lb-queens { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .lb-queen-tag { background:var(–purple-light); border-radius:20px; padding:4px 10px; font-size:12px; color:var(–purple-dark); }
+.lb-breakdown { margin-top:8px; font-size:12px; color:#888; }
+.lb-breakdown span { display:inline-block; margin-right:10px; }
 
 /* TOAST */
 #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(–black); color:#fff; padding:12px 24px; border-radius:30px; font-size:15px; transition:transform .3s; z-index:999; white-space:nowrap; }
@@ -132,9 +135,9 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
       <h1>All Stars 11</h1>
       <p class="subtitle">Tournament of All Stars · Pick 'Em</p>
     </div>
-    <button class="home-btn" style="background:#fff;color:var(--black)" onclick="showView('picks')">🗳️ Submit My Picks</button>
-    <button class="home-btn" style="background:var(--orange-light);color:var(--orange-dark)" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
-    <button class="home-btn" style="background:var(--purple-light);color:var(--purple-dark)" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400">(admin)</span></button>
+    <button class="home-btn" style="background:#fff;color:var(--black);border:2px solid #e0d0ff" onclick="showView('picks')">🗳️ Submit My Picks</button>
+    <button class="home-btn" style="background:var(--orange);color:#fff" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
+    <button class="home-btn" style="background:var(--purple);color:#fff" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <button class="home-btn" style="background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff" onclick="showView('leaderboard')">🏆 Leaderboard</button>
     <div class="card" style="margin-top:24px">
       <div style="font-family:'Playfair Display',serif;font-weight:700;margin-bottom:12px">📊 Scoring Guide</div>
@@ -794,39 +797,66 @@ async function loadLeaderboard() {
     ];
 
     el.innerHTML = players.map((p,i) => {
-      const queenTags = p.queens.map(id => {
+      // Build per-queen breakdown
+      const queenRows = p.queens.map(id => {
         const q = ALL_QUEENS.find(x => x.id === id);
         if (!q) return null;
         const r = getR(id);
         const allEps = [...r.episodes, ...r.semiEpisodes];
+        const qPts = calcPts(id);
+        // Build mini point reasons
+        const reasons = [];
+        allEps.forEach((ep,idx) => {
+          if (ep === "win")  reasons.push("🏆 Win");
+          if (ep === "top2") reasons.push("🥈 Top 2");
+        });
+        if (r.advances)  reasons.push("⬆️ Semis");
+        if (r.finalist)  reasons.push("👑 Winner");
         const badge = r.finalist?"👑":r.advances?"⬆️":allEps.includes("win")?"🏆":allEps.includes("top2")?"🥈":allEps.includes("elim")?"❌":"";
-        const pts = calcPts(id);
-        return `<span class="lb-queen-tag">${badge} ${q.name.split(" ")[0]}${pts>0?` +${pts}`:""}</span>`;
+        const reasonStr = reasons.length ? reasons.join(", ") : "No points yet";
+        return `<div style="display:flex;justify-content:space-between;align-items:center;
+          padding:6px 10px;border-radius:10px;margin-bottom:4px;
+          background:${qPts>0?"var(--purple-light)":"#f9f9f9"}">
+          <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700">${badge} ${q.name.split(" ")[0]}</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:#999">${reasonStr}</span>
+            <span style="font-weight:800;font-size:14px;color:${qPts>0?"var(--purple)":"#ccc"};min-width:28px;text-align:right">+${qPts}</span>
+          </span>
+        </div>`;
       }).filter(Boolean).join("");
 
-      // Rank label: 1st / 2nd / 3rd / etc.
-      const rankLabel = i===0?"1st":i===1?"2nd":i===2?"3rd":`${i+1}th`;
+      // MVQ row
+      const mvqRow = p.mvqPts > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;
+        padding:6px 10px;border-radius:10px;margin-bottom:4px;background:#fff3e0">
+        <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700">⭐ MVQ Votes</span>
+        <span style="font-weight:800;font-size:14px;color:var(--orange-dark)">+${p.mvqPts}</span>
+      </div>` : "";
 
-      return `<div class="lb-row" style="${i===0?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":""}">
-        <div style="display:flex;align-items:center;flex:1;min-width:0">
-          <div class="lb-rank" style="${rankStyle[i]||"background:#f5f5f5;color:#aaa"}">${i===0?"👑":i+1}</div>
-          <div style="min-width:0">
-            <div style="display:flex;align-items:baseline;gap:8px">
-              <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">${p.player}</span>
-              <span style="font-size:12px;color:#bbb;font-weight:600">${rankLabel} place</span>
+      const rankLabel = i===0?"1st":i===1?"2nd":i===2?"3rd":`${i+1}th`;
+      const isFirst = i === 0;
+
+      return `<div class="lb-row" style="${isFirst?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":"border:2px solid #f0eaff"}">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;margin-bottom:10px">
+            <div class="lb-rank" style="${rankStyle[i]||"background:#f5f5f5;color:#aaa"}">${i===0?"👑":i+1}</div>
+            <div>
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">${p.player}</span>
+                <span style="font-size:12px;color:#bbb;font-weight:600">${rankLabel} place</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:4px;margin-top:2px">
+                <span class="lb-score">${p.score}</span>
+                <span class="lb-score-label">pts total</span>
+              </div>
             </div>
-            <div class="lb-queens">${queenTags||'<span style="color:#bbb;font-size:12px">No picks yet</span>'}</div>
           </div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:12px">
-          <div class="lb-score">${p.score}</div>
-          <div style="font-size:11px;color:#bbb;text-align:center;margin-top:-4px">pts</div>
+          <div>${queenRows}${mvqRow}</div>
         </div>
       </div>`;
     }).join("");
 
     // Add scoring key at the bottom
-    el.innerHTML += `<p style="color:#ccc;font-size:12px;text-align:center;margin-top:20px">Win +5 · Top 2 +3 · Advances +10 · Wins Crown +25</p>`;
+    el.innerHTML += `<p style="color:#ccc;font-size:12px;text-align:center;margin-top:20px">Win +5 · Top 2 +3 · Advances +10 · Wins Crown +25 · MVQ Vote +2</p>`;
 
   } catch(e) {
     el.innerHTML = `<p class="empty">⚠️ Couldn't load leaderboard.<br><span style="font-size:13px">Check your connection and try refreshing.</span></p>`;
@@ -834,18 +864,88 @@ async function loadLeaderboard() {
   }
 }
 
-// ── MVQ ───────────────────────────────────────────────────────────────────────
+// ── MVQ AUTO-SCHEDULE ─────────────────────────────────────────────────────────
+// Episodes air Fridays at 5pm MT. Voting closes the following Monday at 11:59pm MT.
+// MT = UTC-6 (MDT in summer)
+const MVQ_SCHEDULE = [
+  { episode:"Episode 1",  airDate:"2026-05-08" },
+  { episode:"Episode 2",  airDate:"2026-05-08" },
+  { episode:"Episode 3",  airDate:"2026-05-15" },
+  { episode:"Episode 4",  airDate:"2026-05-22" },
+  { episode:"Episode 5",  airDate:"2026-05-29" },
+  { episode:"Episode 6",  airDate:"2026-06-05" },
+  { episode:"Episode 7",  airDate:"2026-06-12" },
+  { episode:"Episode 8",  airDate:"2026-06-19" },
+  { episode:"Episode 9",  airDate:"2026-06-26" },
+  { episode:"Episode 10", airDate:"2026-07-03" },
+  { episode:"Episode 11", airDate:"2026-07-10" },
+  { episode:"Episode 12", airDate:"2026-07-17" },
+];
+
+function getMvqAutoState() {
+  // Current time in MT (UTC-6, MDT)
+  const now = new Date();
+  const mtOffset = -6 * 60; // minutes
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const mt  = new Date(utc + mtOffset * 60000);
+
+  for (const ep of MVQ_SCHEDULE) {
+    // Open time: Friday 5:00pm MT
+    const [y,mo,d] = ep.airDate.split("-").map(Number);
+    const openTime = new Date(Date.UTC(y, mo-1, d, 23, 0, 0)); // 5pm MT = 11pm UTC
+
+    // Close time: following Monday 11:59pm MT = Tuesday 5:59am UTC
+    const closeTime = new Date(openTime.getTime() + (3 * 24 + 6 + 0.983) * 60 * 60 * 1000);
+    // More precisely: Monday at 23:59 MT = +3 days 6h 59m from Friday 5pm MT
+    const closeMT = new Date(openTime.getTime() + ((3 * 24 * 60) + 6 * 60 + 59) * 60000);
+
+    if (now >= openTime && now <= closeMT) {
+      return { status:"open", episode:ep.episode, deadline:`Mon ${getDeadlineStr(ep.airDate)}` };
+    }
+    if (now > closeMT && now < new Date(openTime.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+      return { status:"closed", episode:ep.episode };
+    }
+  }
+  return { status:"none" };
+}
+
+function getDeadlineStr(airDateStr) {
+  const [y,mo,d] = airDateStr.split("-").map(Number);
+  const fri = new Date(y, mo-1, d);
+  const mon = new Date(fri.getTime() + 3 * 24 * 60 * 60 * 1000);
+  return mon.toLocaleDateString("en-US", { month:"short", day:"numeric" }) + " at 11:59pm MT";
+}
 let mvqAdminUnlocked = false;
 let mvqCurrentPlayer = null;
 let mvqSelectedQueen = null;
-let mvqOpenVote = null;      // { episode, deadline, votes:{playerName:queenId}, closed:bool }
+let mvqOpenVote  = null;
 let mvqPastVotes = [];
 
 async function loadMvqView() {
   try {
     const data = await apiFetch({ action:"getMvq" });
-    mvqOpenVote  = data.open  || null;
-    mvqPastVotes = data.past  || [];
+    mvqPastVotes = data.past || [];
+
+    // Check auto-schedule
+    const autoState = getMvqAutoState();
+    if (autoState.status === "open") {
+      const alreadyClosed = mvqPastVotes.some(v => v.episode === autoState.episode);
+      if (!alreadyClosed) {
+        mvqOpenVote = data.open || { episode:autoState.episode, deadline:autoState.deadline, votes:{} };
+        // Auto-open in Sheet if not already open for this episode
+        if (!data.open || data.open.episode !== autoState.episode) {
+          await apiPost({ action:"openMvqVote", episode:autoState.episode, deadline:autoState.deadline });
+          const fresh = await apiFetch({ action:"getMvq" });
+          mvqOpenVote  = fresh.open  || mvqOpenVote;
+          mvqPastVotes = fresh.past  || mvqPastVotes;
+        }
+      } else {
+        mvqOpenVote = null;
+      }
+    } else {
+      mvqOpenVote = data.open || null;
+    }
+
     renderMvqOpen();
     renderMvqPast();
     if (mvqAdminUnlocked) renderMvqAdminActions();
