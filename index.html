@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -8,178 +9,108 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --pink:        #ff6b9d;
-    --pink-light:  #ffe0ee;
-    --pink-dark:   #c2185b;
-    --orange:      #ff8c42;
-    --orange-light:#fff0e6;
-    --orange-dark: #e65100;
-    --purple:      #9c6fde;
-    --purple-light:#f3ecff;
-    --purple-dark: #4a148c;
-    --black:       #2d0036;
-    --grey:        #f5f5f5;
-  }
+:root {
+–pink:        #ff6b9d;
+–pink-light:  #ffe0ee;
+–pink-dark:   #c2185b;
+–orange:      #ff8c42;
+–orange-light:#fff0e6;
+–orange-dark: #e65100;
+–purple:      #9c6fde;
+–purple-light:#f3ecff;
+–purple-dark: #4a148c;
+–black:       #2d0036;
+}
 
-  body {
-    font-family: Georgia, serif;
-    background: linear-gradient(160deg, #fff5fa 0%, #f3ecff 50%, #fff8e1 100%);
-    min-height: 100vh;
-    color: var(--black);
-  }
+body { font-family: Georgia, serif; background: linear-gradient(160deg,#fff5fa 0%,#f3ecff 50%,#fff8e1 100%); min-height:100vh; color:var(–black); }
+.container { max-width:620px; margin:0 auto; padding:0 16px 60px; }
 
-  .container { max-width: 600px; margin: 0 auto; padding: 0 16px 60px; }
+/* NAV */
+nav { display:flex; background:#fff; border-bottom:2px solid var(–purple-light); position:sticky; top:0; z-index:100; overflow-x:auto; }
+nav button { flex:1; min-width:72px; padding:14px 6px; border:none; background:none; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:13px; color:#999; border-bottom:3px solid transparent; transition:all .2s; white-space:nowrap; }
+nav button.active { color:var(–purple); border-bottom-color:var(–purple); font-weight:700; }
+nav button:hover:not(.active) { color:var(–black); background:var(–purple-light); }
 
-  /* ── NAV ── */
-  nav {
-    display: flex; gap: 0;
-    background: #fff;
-    border-bottom: 2px solid var(--purple-light);
-    position: sticky; top: 0; z-index: 100;
-    overflow-x: auto;
-  }
-  nav button {
-    flex: 1; min-width: 80px;
-    padding: 14px 8px;
-    border: none; background: none; cursor: pointer;
-    font-family: 'Playfair Display', serif; font-size: 13px;
-    color: #999; border-bottom: 3px solid transparent;
-    transition: all .2s; white-space: nowrap;
-  }
-  nav button.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 700; }
-  nav button:hover:not(.active) { color: var(--black); background: var(--purple-light); }
+/* VIEWS */
+.view { display:none; padding-top:24px; }
+.view.active { display:block; }
 
-  /* ── VIEWS ── */
-  .view { display: none; padding-top: 24px; }
-  .view.active { display: block; }
+/* TYPE */
+h1 { font-family:‘Playfair Display’,serif; font-size:clamp(28px,7vw,48px); color:var(–black); letter-spacing:-1px; }
+h2 { font-family:‘Playfair Display’,serif; font-size:24px; color:var(–black); margin-bottom:16px; }
+.subtitle { font-family:‘Playfair Display’,serif; font-style:italic; color:var(–purple); font-size:18px; margin:4px 0 28px; }
 
-  /* ── TYPOGRAPHY ── */
-  h1 { font-family: 'Playfair Display', serif; font-size: clamp(28px,7vw,48px); color: var(--black); letter-spacing: -1px; }
-  h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--black); margin-bottom: 16px; }
-  .subtitle { font-family: 'Playfair Display', serif; font-style: italic; color: var(--purple); font-size: 18px; margin: 4px 0 28px; }
+/* CARDS */
+.card { background:#fff; border-radius:18px; padding:18px 20px; margin-bottom:12px; box-shadow:0 2px 16px rgba(0,0,0,0.07); }
 
-  /* ── CARDS ── */
-  .card {
-    background: #fff; border-radius: 18px;
-    padding: 18px 20px; margin-bottom: 12px;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-  }
+/* BUTTONS */
+.btn { padding:13px 22px; border-radius:14px; border:none; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:16px; font-weight:700; transition:transform .15s; }
+.btn:hover { transform:scale(1.03); }
+.btn-purple { background:var(–purple); color:#fff; }
+.btn-outline { background:#fff; color:var(–purple); border:2px solid var(–purple); }
+.btn-gradient { background:linear-gradient(135deg,var(–pink),var(–purple)); color:#fff; }
+.btn-sm { padding:8px 16px; font-size:14px; border-radius:10px; }
 
-  /* ── BUTTONS ── */
-  .btn {
-    padding: 13px 22px; border-radius: 14px; border: none;
-    cursor: pointer; font-family: 'Playfair Display', serif;
-    font-size: 16px; font-weight: 700; transition: transform .15s;
-  }
-  .btn:hover { transform: scale(1.03); }
-  .btn-purple { background: var(--purple); color: #fff; }
-  .btn-outline { background: #fff; color: var(--purple); border: 2px solid var(--purple); }
-  .btn-gradient { background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; }
-  .btn-sm { padding: 8px 16px; font-size: 14px; border-radius: 10px; }
+/* INPUT */
+input[type=text], input[type=password] { width:100%; padding:13px 16px; border-radius:12px; border:2px solid var(–purple-light); font-family:‘Playfair Display’,serif; font-size:16px; outline:none; transition:border-color .2s; }
+input[type=text]:focus, input[type=password]:focus { border-color:var(–purple); }
 
-  /* ── INPUT ── */
-  input[type=text], input[type=password] {
-    width: 100%; padding: 13px 16px; border-radius: 12px;
-    border: 2px solid var(--purple-light); font-family: 'Playfair Display', serif;
-    font-size: 16px; outline: none; transition: border-color .2s;
-  }
-  input[type=text]:focus, input[type=password]:focus { border-color: var(--purple); }
+/* BRACKET */
+.bracket-header { display:flex; align-items:center; gap:10px; margin:20px 0 10px; }
+.bracket-dot { width:14px; height:14px; border-radius:50%; }
+.bracket-label { font-family:‘Playfair Display’,serif; font-weight:700; font-size:18px; }
 
-  /* ── BRACKET SECTION ── */
-  .bracket-header {
-    display: flex; align-items: center; gap: 10px;
-    margin: 20px 0 10px;
-  }
-  .bracket-dot { width: 14px; height: 14px; border-radius: 50%; }
-  .bracket-label { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; }
+/* QUEEN ROW */
+.queen-row { display:flex; justify-content:space-between; align-items:center; border-radius:12px; padding:12px 16px; margin-bottom:8px; cursor:pointer; border:2px solid transparent; transition:all .15s; }
+.queen-row:hover { filter:brightness(0.97); }
+.queen-name { font-family:‘Playfair Display’,serif; font-weight:700; font-size:15px; }
+.queen-season { color:#999; font-size:12px; margin-top:2px; }
+.check-circle { width:28px; height:28px; border-radius:50%; border:2px solid #ddd; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; transition:all .15s; }
 
-  /* ── QUEEN ROW ── */
-  .queen-row {
-    display: flex; justify-content: space-between; align-items: center;
-    border-radius: 12px; padding: 12px 16px; margin-bottom: 8px;
-    cursor: pointer; border: 2px solid transparent; transition: all .15s;
-  }
-  .queen-row:hover { filter: brightness(0.97); }
-  .queen-name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 15px; }
-  .queen-season { color: #999; font-size: 12px; margin-top: 2px; }
-  .check-circle {
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 2px solid #ddd; display: flex; align-items: center;
-    justify-content: center; font-size: 15px; flex-shrink: 0;
-    transition: all .15s;
-  }
+/* RESULTS TABS */
+.section-tabs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:24px; }
+.section-tab { padding:10px 6px; border-radius:12px; border:2px solid #eee; background:#fff; color:#999; cursor:pointer; font-weight:700; line-height:1.3; text-align:center; font-family:‘Playfair Display’,serif; transition:all .15s; }
+.section-tab.active { border-color:var(–purple); background:var(–purple); color:#fff; }
+.section-tab div:last-child { font-size:11px; opacity:.8; }
 
-  /* ── RESULT TAGS ── */
-  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .tag {
-    padding: 6px 12px; border-radius: 20px; border: 2px solid;
-    cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s;
-  }
+/* EP GRID */
+.ep-grid { display:grid; gap:6px; margin-bottom:10px; }
+.ep-col { display:flex; flex-direction:column; gap:3px; }
+.ep-label { color:#ccc; font-size:10px; text-align:center; font-weight:700; letter-spacing:.5px; margin-bottom:2px; }
+.ep-btn { padding:4px 3px; border-radius:7px; border:2px solid #eee; background:transparent; color:#bbb; cursor:pointer; font-size:11px; font-weight:700; text-align:center; transition:all .1s; }
+.ep-btn.on { color:#fff; }
 
-  /* ── LEADERBOARD ── */
-  .lb-row {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #fff; border-radius: 18px; padding: 16px 20px;
-    margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  }
-  .lb-rank {
-    width: 40px; height: 40px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; font-weight: 800; margin-right: 14px; flex-shrink: 0;
-  }
-  .lb-score {
-    font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 800;
-    background: linear-gradient(135deg, var(--pink), var(--purple));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  .lb-queens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .lb-queen-tag {
-    background: var(--purple-light); border-radius: 20px;
-    padding: 4px 10px; font-size: 12px; color: var(--purple-dark);
-  }
+/* TAG */
+.tag-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.tag { padding:6px 12px; border-radius:20px; border:2px solid; cursor:pointer; font-size:13px; font-weight:600; transition:all .15s; }
 
-  /* ── TOAST ── */
-  #toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
-    background: var(--black); color: #fff; padding: 12px 24px;
-    border-radius: 30px; font-size: 15px; transition: transform .3s;
-    z-index: 999; white-space: nowrap;
-  }
-  #toast.show { transform: translateX(-50%) translateY(0); }
+/* LEADERBOARD */
+.lb-row { display:flex; justify-content:space-between; align-items:center; background:#fff; border-radius:18px; padding:16px 20px; margin-bottom:12px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+.lb-rank { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; margin-right:14px; flex-shrink:0; }
+.lb-score { font-family:‘Playfair Display’,serif; font-size:28px; font-weight:800; background:linear-gradient(135deg,var(–pink),var(–purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.lb-queens { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.lb-queen-tag { background:var(–purple-light); border-radius:20px; padding:4px 10px; font-size:12px; color:var(–purple-dark); }
 
-  /* ── LOADING ── */
-  .spinner {
-    border: 3px solid var(--purple-light); border-top-color: var(--purple);
-    border-radius: 50%; width: 32px; height: 32px;
-    animation: spin .7s linear infinite; margin: 40px auto;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* TOAST */
+#toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(–black); color:#fff; padding:12px 24px; border-radius:30px; font-size:15px; transition:transform .3s; z-index:999; white-space:nowrap; }
+#toast.show { transform:translateX(-50%) translateY(0); }
 
-  .empty { color: #bbb; text-align: center; padding: 40px 0; font-size: 15px; }
+/* SPINNER */
+.spinner { border:3px solid var(–purple-light); border-top-color:var(–purple); border-radius:50%; width:32px; height:32px; animation:spin .7s linear infinite; margin:40px auto; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.empty { color:#bbb; text-align:center; padding:40px 0; font-size:15px; }
 
-  /* ── HOME BUTTONS ── */
-  .home-btn {
-    display: block; width: 100%; padding: 18px 24px;
-    border-radius: 18px; border: none; cursor: pointer;
-    font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700;
-    margin-bottom: 14px; text-align: left;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: transform .15s;
-  }
-  .home-btn:hover { transform: scale(1.02); }
-
-  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-  .pill {
-    padding: 8px 16px; border-radius: 20px; border: 2px solid;
-    cursor: pointer; font-family: 'Playfair Display', serif; font-size: 14px;
-    transition: all .15s;
-  }
-
-  .score-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-  .score-item { background: var(--purple-light); border-radius: 10px; padding: 10px 14px; }
-  .score-pts { font-weight: 800; font-size: 20px; color: var(--purple); }
-  .score-label { font-size: 12px; color: #666; margin-top: 2px; }
+/* HOME */
+.home-btn { display:block; width:100%; padding:18px 24px; border-radius:18px; border:none; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:18px; font-weight:700; margin-bottom:14px; text-align:left; box-shadow:0 4px 20px rgba(0,0,0,0.08); transition:transform .15s; }
+.home-btn:hover { transform:scale(1.02); }
+.pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.pill { padding:8px 16px; border-radius:20px; border:2px solid; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:14px; transition:all .15s; }
+.score-guide { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+.score-item { background:var(–purple-light); border-radius:10px; padding:10px 14px; }
+.score-pts { font-weight:800; font-size:20px; color:var(–purple); }
+.score-label { font-size:12px; color:#666; margin-top:2px; }
 </style>
+
 </head>
 <body>
 
@@ -192,7 +123,8 @@
 
 <div class="container">
 
-  <!-- ══ HOME ══ -->
+  <!-- HOME -->
+
   <div id="view-home" class="view active">
     <div style="text-align:center;padding:32px 0 24px">
       <div style="font-size:60px;margin-bottom:8px">👑</div>
@@ -202,7 +134,6 @@
     <button class="home-btn" style="background:#fff;color:var(--black)" onclick="showView('picks')">🗳️ Submit My Picks</button>
     <button class="home-btn" style="background:var(--purple-light);color:var(--purple-dark)" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400">(admin)</span></button>
     <button class="home-btn" style="background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff" onclick="showView('leaderboard')">🏆 Leaderboard</button>
-
     <div class="card" style="margin-top:24px">
       <div style="font-family:'Playfair Display',serif;font-weight:700;margin-bottom:12px">📊 Scoring Guide</div>
       <div class="score-guide">
@@ -213,39 +144,38 @@
         <div class="score-item" style="grid-column:1/-1"><div class="score-pts">25</div><div class="score-label">👑 Wins the Crown</div></div>
       </div>
     </div>
-    <p style="text-align:center;color:#bbb;font-size:12px;margin-top:20px">Premieres May 8, 2026 · Paramount+</p>
+    <p style="text-align:center;color:#bbb;font-size:12px;margin-top:20px">12 episodes · Premieres May 8, 2026 · Paramount+</p>
   </div>
 
-  <!-- ══ PICKS ══ -->
+  <!-- PICKS -->
+
   <div id="view-picks" class="view">
     <h2>🗳️ Submit Picks</h2>
-
     <div id="picks-name-section">
       <p style="color:#888;font-size:14px;margin-bottom:12px">Enter your name to load or create your picks.</p>
       <div style="display:flex;gap:10px;margin-bottom:20px">
         <input type="text" id="picks-name-input" placeholder="Your name…" onkeydown="if(event.key==='Enter')loadPlayerPicks()" />
         <button class="btn btn-purple" onclick="loadPlayerPicks()">Go</button>
       </div>
-
       <div id="existing-players-section" style="display:none">
         <p style="color:#888;font-size:13px;margin-bottom:8px">Or pick an existing player:</p>
         <div id="existing-players-pills" class="pill-row"></div>
       </div>
     </div>
-
     <div id="picks-form" style="display:none">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700" id="picks-player-label"></div>
         <button class="btn btn-outline btn-sm" onclick="resetPicksPlayer()">← Change</button>
       </div>
-      <p style="color:#888;font-size:13px;margin-bottom:4px">Tap queens you think will go far. Changes save automatically.</p>
+      <p style="color:#888;font-size:13px;margin-bottom:4px">Tap queens you think will go far. Hit Save when done.</p>
       <div id="picks-brackets"></div>
       <div style="text-align:center;margin-top:8px;color:#bbb;font-size:13px" id="picks-count"></div>
       <button class="btn btn-gradient" style="width:100%;margin-top:16px" onclick="savePicks()">💾 Save Picks</button>
     </div>
   </div>
 
-  <!-- ══ RESULTS ══ -->
+  <!-- RESULTS -->
+
   <div id="view-results" class="view">
     <h2>📋 Episode Results</h2>
     <div style="display:flex;gap:10px;margin-bottom:20px">
@@ -254,12 +184,20 @@
     </div>
     <div id="results-locked" style="color:#bbb;font-size:14px;text-align:center;padding:30px 0">🔒 Enter the admin password to record results.</div>
     <div id="results-form" style="display:none">
+      <div class="section-tabs">
+        <div class="section-tab active" onclick="showResultsSection('brackets',this)"><div>🪩 Brackets</div><div>Eps 1–9</div></div>
+        <div class="section-tab" onclick="showResultsSection('semis',this)"><div>⚡ Semis</div><div>Eps 10–11</div></div>
+        <div class="section-tab" onclick="showResultsSection('finale',this)"><div>👑 Finale</div><div>Ep 12</div></div>
+      </div>
       <div id="results-brackets"></div>
+      <div id="results-semis" style="display:none"></div>
+      <div id="results-finale" style="display:none"></div>
       <button class="btn btn-gradient" style="width:100%;margin-top:8px" onclick="saveResults()">💾 Save Results</button>
     </div>
   </div>
 
-  <!-- ══ LEADERBOARD ══ -->
+  <!-- LEADERBOARD -->
+
   <div id="view-leaderboard" class="view">
     <h2>🏆 Leaderboard</h2>
     <button class="btn btn-outline btn-sm" style="margin-bottom:16px" onclick="loadLeaderboard()">↻ Refresh</button>
@@ -267,58 +205,68 @@
   </div>
 
 </div>
-
 <div id="toast"></div>
 
 <script>
+// ── CONFIG — keep your existing Apps Script URL and password ──────────────────
 const API = "https://script.google.com/macros/s/AKfycbyhaF4vw2qmVcqDTvm2v4rJEdre328UxmizfklyRbgW0bxSQlXzWwe6ziltCnwE0PPXNg/exec";
-const ADMIN_PASSWORD = "rpdr2026"; // change this to whatever you like
+const ADMIN_PASSWORD = "rpdr2026";
 
+// ── QUEENS (brackets match the show: Pink=Bracket1, Orange=Bracket2, Purple=Bracket3)
 const QUEENS = {
-  Orange: [
-    { id:"akeria",   name:"A'Keria C. Davenport", season:"S11, AS6" },
-    { id:"dawn",     name:"Dawn",                  season:"S16" },
-    { id:"lucky",    name:"Lucky Starzzz",         season:"S17" },
-    { id:"morgan",   name:"Morgan McMichaels",     season:"S2, AS3" },
-    { id:"morphine", name:"Morphine Love Dion",    season:"S16" },
-    { id:"mystique", name:"Mystique Summers",      season:"S2" },
-  ],
   Pink: [
-    { id:"april",     name:"April Carrión",        season:"S6" },
-    { id:"aura",      name:"Aura Mayari",          season:"S15" },
-    { id:"crystal",   name:"Crystal Methyd",       season:"S12" },
-    { id:"salina",    name:"Salina EsTitties",     season:"S15" },
-    { id:"silky",     name:"Silky Nutmeg Ganache", season:"S11, AS6" },
-    { id:"vivacious", name:"Vivacious",            season:"S6" },
+    { id:"akeria",   name:"A'Keria C. Davenport", season:"S11, AS6", emoji:"👑" },
+    { id:"april",    name:"April Carrión",         season:"S6",       emoji:"🌸" },
+    { id:"crystal",  name:"Crystal Methyd",        season:"S12",      emoji:"💎" },
+    { id:"jasmine",  name:"Jasmine Kennedie",      season:"S14",      emoji:"🌺" },
+    { id:"kennedy",  name:"Kennedy Davenport",     season:"S7, AS3",  emoji:"⚡" },
+    { id:"morgan",   name:"Morgan McMichaels",     season:"S2, AS3",  emoji:"🔥" },
+  ],
+  Orange: [
+    { id:"aura",      name:"Aura Mayari",          season:"S15", emoji:"✨" },
+    { id:"dawn",      name:"Dawn",                 season:"S16", emoji:"🌅" },
+    { id:"hershii",   name:"Hershii LiqCour-Jeté", season:"S16", emoji:"💫" },
+    { id:"joey",      name:"Joey Jay",             season:"S13", emoji:"🎉" },
+    { id:"lucky",     name:"Lucky Starzzz",        season:"S17", emoji:"⭐" },
+    { id:"vivacious", name:"Vivacious",            season:"S6",  emoji:"🦋" },
   ],
   Purple: [
-    { id:"hershii",  name:"Hershii LiqCour-Jeté",  season:"S16" },
-    { id:"jasmine",  name:"Jasmine Kennedie",       season:"S14" },
-    { id:"joey",     name:"Joey Jay",               season:"S13" },
-    { id:"kennedy",  name:"Kennedy Davenport",      season:"S7, AS3" },
-    { id:"sam",      name:"Sam Star",               season:"S17" },
-    { id:"shuga",    name:"Shuga Cain",             season:"S11" },
+    { id:"morphine", name:"Morphine Love Dion",   season:"S16",      emoji:"💜" },
+    { id:"mystique", name:"Mystique Summers",     season:"S2",       emoji:"🔮" },
+    { id:"salina",   name:"Salina EsTitties",     season:"S15",      emoji:"🍑" },
+    { id:"sam",      name:"Sam Star",             season:"S17",      emoji:"🌟" },
+    { id:"shuga",    name:"Shuga Cain",           season:"S11",      emoji:"🍬" },
+    { id:"silky",    name:"Silky Nutmeg Ganache", season:"S11, AS6", emoji:"✨" },
   ],
 };
 
 const ALL_QUEENS = [...QUEENS.Pink, ...QUEENS.Orange, ...QUEENS.Purple];
 
-const BCOLORS = {
-  Orange: { bg:"var(--orange)", light:"var(--orange-light)", dark:"var(--orange-dark)", text:"var(--orange-dark)" },
-  Pink:   { bg:"var(--pink)",   light:"var(--pink-light)",   dark:"var(--pink-dark)",   text:"var(--pink-dark)" },
-  Purple: { bg:"var(--purple)", light:"var(--purple-light)", dark:"var(--purple-dark)", text:"var(--purple-dark)" },
+const BC = {
+  Pink:   { bg:"var(--pink)",   light:"var(--pink-light)",   text:"var(--pink-dark)" },
+  Orange: { bg:"var(--orange)", light:"var(--orange-light)", text:"var(--orange-dark)" },
+  Purple: { bg:"var(--purple)", light:"var(--purple-light)", text:"var(--purple-dark)" },
 };
 
-// ── State ──
-let allPlayers   = [];   // [{ player, queens:[id,...] }]
-let currentPlayer = null;
-let currentPicks  = {};  // { queenId: bool }
-let results       = {};  // { queenId: { win,top2,safe,elim } }
-let advancers     = [];
-let finalist      = null;
-let adminUnlocked = false;
+// Bracket episode labels (which show ep numbers belong to each bracket)
+const BEP = { Pink:["Ep 1","Ep 2","Ep 3"], Orange:["Ep 4","Ep 5","Ep 6"], Purple:["Ep 7","Ep 8","Ep 9"] };
+const SEP = ["Ep 10","Ep 11"];
 
-// ── Helpers ──
+const EP_OPTS = [
+  { key:"win",  label:"🏆 Win",   pts:5, color:"#ff6b9d" },
+  { key:"top2", label:"🥈 Top 2", pts:3, color:"#ff8c42" },
+  { key:"safe", label:"✅ Safe",  pts:1, color:"#4caf50" },
+  { key:"elim", label:"❌ Elim",  pts:0, color:"#bbb"    },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allPlayers    = [];
+let currentPlayer = null;
+let currentPicks  = {};
+// results shape: { queenId: { episodes:[null,null,null], semiEpisodes:[null,null], advances:bool, finalist:bool } }
+let results       = {};
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
 function toast(msg) {
   const el = document.getElementById("toast");
   el.textContent = msg;
@@ -337,6 +285,14 @@ function showView(id) {
   if (id === "leaderboard") loadLeaderboard();
 }
 
+function showResultsSection(sec, tabEl) {
+  document.querySelectorAll(".section-tab").forEach(t => t.classList.remove("active"));
+  tabEl.classList.add("active");
+  ["brackets","semis","finale"].forEach(s => {
+    document.getElementById("results-" + s).style.display = s === sec ? "block" : "none";
+  });
+}
+
 async function apiFetch(params) {
   const url = API + "?" + new URLSearchParams(params);
   const r = await fetch(url);
@@ -352,13 +308,34 @@ async function apiPost(body) {
   return r.json();
 }
 
-// ── PICKS ──
+function getR(qid) {
+  const r = results[qid];
+  if (!r) return { episodes:[null,null,null], semiEpisodes:[null,null], advances:false, finalist:false };
+  return {
+    episodes:     r.episodes     || [null,null,null],
+    semiEpisodes: r.semiEpisodes || [null,null],
+    advances:     r.advances     || false,
+    finalist:     r.finalist     || false,
+  };
+}
+
+function calcPts(qid) {
+  const r = getR(qid);
+  let pts = 0;
+  [...r.episodes, ...r.semiEpisodes].forEach(ep => {
+    const o = EP_OPTS.find(x => x.key === ep);
+    if (o) pts += o.pts;
+  });
+  if (r.advances) pts += 10;
+  if (r.finalist) pts += 25;
+  return pts;
+}
+
+// ── PICKS ─────────────────────────────────────────────────────────────────────
 async function loadPlayerPicks() {
   const name = document.getElementById("picks-name-input").value.trim();
   if (!name) { toast("Enter your name first!"); return; }
   currentPlayer = name;
-
-  // Load all players if not yet done
   if (!allPlayers.length) {
     const data = await apiFetch({ action:"getAll" });
     allPlayers = data.players || [];
@@ -366,23 +343,19 @@ async function loadPlayerPicks() {
   const existing = allPlayers.find(p => p.player.toLowerCase() === name.toLowerCase());
   currentPicks = {};
   if (existing) existing.queens.forEach(id => currentPicks[id] = true);
-
   renderPicksForm();
 }
 
 function resetPicksPlayer() {
-  currentPlayer = null;
-  currentPicks  = {};
+  currentPlayer = null; currentPicks = {};
   document.getElementById("picks-form").style.display = "none";
   document.getElementById("picks-name-section").style.display = "block";
   document.getElementById("picks-name-input").value = "";
 }
 
 async function renderPicksExistingPlayers() {
-  if (!allPlayers.length) {
-    const data = await apiFetch({ action:"getAll" });
-    allPlayers = data.players || [];
-  }
+  const data = await apiFetch({ action:"getAll" });
+  allPlayers = data.players || [];
   const sec = document.getElementById("existing-players-section");
   const pills = document.getElementById("existing-players-pills");
   if (!allPlayers.length) { sec.style.display = "none"; return; }
@@ -401,12 +374,10 @@ function renderPicksForm() {
   document.getElementById("picks-name-section").style.display = "none";
   document.getElementById("picks-form").style.display = "block";
   document.getElementById("picks-player-label").textContent = "Picks for " + currentPlayer;
-
   const container = document.getElementById("picks-brackets");
   container.innerHTML = "";
-
   Object.entries(QUEENS).forEach(([bracket, queens]) => {
-    const bc = BCOLORS[bracket];
+    const bc = BC[bracket];
     let html = `<div class="bracket-header">
       <div class="bracket-dot" style="background:${bc.bg}"></div>
       <span class="bracket-label" style="color:${bc.text}">${bracket} Bracket</span>
@@ -414,14 +385,14 @@ function renderPicksForm() {
     queens.forEach(q => {
       const picked = !!currentPicks[q.id];
       html += `<div class="queen-row" id="qrow-${q.id}"
-        style="background:${picked?bc.light:'#fff'};border-color:${picked?bc.bg:'#eee'}"
+        style="background:${picked?bc.light:"#fff"};border-color:${picked?bc.bg:"#eee"}"
         onclick="togglePick('${q.id}','${bracket}')">
         <div>
-          <div class="queen-name">${q.name}</div>
+          <div class="queen-name">${q.emoji} ${q.name}</div>
           <div class="queen-season">${q.season}</div>
         </div>
         <div class="check-circle" id="qcheck-${q.id}"
-          style="background:${picked?bc.bg:'transparent'};border-color:${picked?bc.bg:'#ddd'};color:#fff">
+          style="background:${picked?bc.bg:"transparent"};border-color:${picked?bc.bg:"#ddd"};color:#fff">
           ${picked?"✓":""}
         </div>
       </div>`;
@@ -433,7 +404,7 @@ function renderPicksForm() {
 
 function togglePick(id, bracket) {
   currentPicks[id] = !currentPicks[id];
-  const bc = BCOLORS[bracket];
+  const bc = BC[bracket];
   const picked = currentPicks[id];
   const row = document.getElementById("qrow-" + id);
   const chk = document.getElementById("qcheck-" + id);
@@ -456,7 +427,6 @@ async function savePicks() {
   const res = await apiPost({ action:"savePicks", player:currentPlayer, queens });
   if (res.success) {
     toast("✅ Picks saved for " + currentPlayer + "!");
-    // update local cache
     const idx = allPlayers.findIndex(p => p.player === currentPlayer);
     if (idx >= 0) allPlayers[idx].queens = queens;
     else allPlayers.push({ player:currentPlayer, queens });
@@ -465,11 +435,10 @@ async function savePicks() {
   }
 }
 
-// ── RESULTS ──
+// ── RESULTS ───────────────────────────────────────────────────────────────────
 function unlockAdmin() {
   const pw = document.getElementById("admin-pw").value;
   if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
-  adminUnlocked = true;
   document.getElementById("results-locked").style.display = "none";
   document.getElementById("results-form").style.display = "block";
   loadAndRenderResults();
@@ -477,35 +446,52 @@ function unlockAdmin() {
 
 async function loadAndRenderResults() {
   const data = await apiFetch({ action:"getResults" });
-  results   = data.results   || {};
-  advancers = data.advancers || [];
-  finalist  = data.finalist  || null;
-  renderResultsForm();
+  // Migrate old flat format to new episode-based format if needed
+  const raw = data.results || {};
+  results = {};
+  Object.keys(raw).forEach(qid => {
+    const r = raw[qid];
+    // If it's already new format (has episodes array), use as-is
+    if (Array.isArray(r.episodes)) {
+      results[qid] = r;
+    } else {
+      // Old flat format — migrate: put old win/top2/safe/elim in ep slot 0 for backwards compat
+      results[qid] = {
+        episodes: [r.win?"win":r.top2?"top2":r.safe?"safe":r.elim?"elim":null, null, null],
+        semiEpisodes: [null, null],
+        advances: r.advances || false,
+        finalist: r.finalist || false,
+      };
+    }
+  });
+  renderResultsBrackets();
+  renderResultsSemis();
+  renderResultsFinale();
 }
 
-function renderResultsForm() {
+function renderResultsBrackets() {
   const container = document.getElementById("results-brackets");
   container.innerHTML = "";
-
   Object.entries(QUEENS).forEach(([bracket, queens]) => {
-    const bc = BCOLORS[bracket];
+    const bc = BC[bracket];
+    const epLabels = BEP[bracket];
     let html = `<div class="bracket-header">
       <div class="bracket-dot" style="background:${bc.bg}"></div>
       <span class="bracket-label" style="color:${bc.text}">${bracket} Bracket</span>
+      <span style="color:#bbb;font-size:13px">(${bracket==="Pink"?"Eps 1–3":bracket==="Orange"?"Eps 4–6":"Eps 7–9"})</span>
     </div>`;
     queens.forEach(q => {
-      const r = results[q.id] || {};
-      const adv = advancers.includes(q.id);
-      const win = finalist === q.id;
+      const r = getR(q.id);
       html += `<div class="card">
-        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;margin-bottom:8px">${q.name}</div>
-        <div class="tag-row">
-          ${tag(q.id,"win",  r.win,  "🏆 Win (5pts)",    "#e53935","#ffebee")}
-          ${tag(q.id,"top2", r.top2, "🥈 Top 2 (3pts)",  "#f57c00","#fff3e0")}
-          ${tag(q.id,"safe", r.safe, "✅ Safe (1pt)",     "#388e3c","#e8f5e9")}
-          ${tag(q.id,"elim", r.elim, "❌ Elim",           "#9e9e9e","#f5f5f5")}
-          ${advTag(q.id, adv)}
-          ${winTag(q.id, win)}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px">${q.emoji} ${q.name}</div>
+          <span style="font-weight:700;color:var(--purple);font-size:13px" id="pts-${q.id}">${calcPts(q.id)} pts</span>
+        </div>
+        ${buildEpGrid(q.id, r.episodes, epLabels, false)}
+        <div style="border-top:1px solid var(--purple-light);padding-top:10px;margin-top:4px">
+          <div class="tag" id="adv-${q.id}"
+            style="display:inline-block;border-color:${r.advances?"var(--purple)":"#eee"};background:${r.advances?"var(--purple-light)":"transparent"};color:${r.advances?"var(--purple)":"#bbb"}"
+            onclick="toggleAdvances('${q.id}')">⬆️ Advances to Semis (+10)</div>
         </div>
       </div>`;
     });
@@ -513,80 +499,146 @@ function renderResultsForm() {
   });
 }
 
-function tag(qid, field, active, label, activeColor, activeBg) {
-  return `<div class="tag" id="tag-${qid}-${field}"
-    style="border-color:${active?activeColor:"#eee"};background:${active?activeBg:"transparent"};color:${active?activeColor:"#bbb"}"
-    onclick="toggleTag('${qid}','${field}','${activeColor}','${activeBg}')">${label}</div>`;
+function renderResultsSemis() {
+  const container = document.getElementById("results-semis");
+  const advancers = ALL_QUEENS.filter(q => getR(q.id).advances);
+  if (!advancers.length) {
+    container.innerHTML = '<p class="empty">No queens marked as advancing yet.<br>Go to Brackets tab first.</p>';
+    return;
+  }
+  container.innerHTML = '<p style="color:#888;font-size:13px;margin-bottom:20px">Top 2 from each bracket (6 queens) compete in Eps 10 & 11.</p>';
+  advancers.forEach(q => {
+    const bracket = Object.keys(QUEENS).find(b => QUEENS[b].some(x => x.id === q.id));
+    const bc = BC[bracket];
+    const r = getR(q.id);
+    container.innerHTML += `<div class="card" style="border-left:4px solid ${bc.bg}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px">${q.emoji} ${q.name}</div>
+          <div style="color:${bc.text};font-size:12px;font-weight:700;text-transform:capitalize">${bracket} bracket</div>
+        </div>
+        <span style="font-weight:700;color:var(--purple);font-size:13px" id="pts-semi-${q.id}">${calcPts(q.id)} pts total</span>
+      </div>
+      ${buildEpGrid(q.id, r.semiEpisodes, SEP, true)}
+    </div>`;
+  });
 }
 
-function advTag(qid, active) {
-  const c = "var(--purple)", bg = "var(--purple-light)";
-  return `<div class="tag" id="tag-${qid}-adv"
-    style="border-color:${active?c:"#eee"};background:${active?bg:"transparent"};color:${active?c:"#bbb"}"
-    onclick="toggleAdv('${qid}')">⬆️ Advances (10pts)</div>`;
+function renderResultsFinale() {
+  const container = document.getElementById("results-finale");
+  const advancers = ALL_QUEENS.filter(q => getR(q.id).advances);
+  if (!advancers.length) {
+    container.innerHTML = '<p class="empty">Mark advancing queens in Brackets tab first.</p>';
+    return;
+  }
+  container.innerHTML = '<p style="color:#888;font-size:13px;margin-bottom:20px">Ep 12 — Lip Sync Smackdown for the Crown. Tap the winner (+25 pts).</p>';
+  advancers.forEach(q => {
+    const bracket = Object.keys(QUEENS).find(b => QUEENS[b].some(x => x.id === q.id));
+    const bc = BC[bracket];
+    const r = getR(q.id);
+    container.innerHTML += `<div onclick="toggleFinalist('${q.id}')" id="finale-row-${q.id}"
+      style="display:flex;justify-content:space-between;align-items:center;
+        background:${r.finalist?"#fffbe6":"#fff"};
+        border:2px solid ${r.finalist?"#ffd700":"#eee"};
+        border-radius:14px;padding:16px 18px;margin-bottom:10px;cursor:pointer;
+        box-shadow:${r.finalist?"0 4px 20px rgba(255,215,0,0.3)":"0 2px 12px rgba(0,0,0,0.07)"};
+        transition:all .15s">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-weight:700;color:var(--black);font-size:17px">
+          ${r.finalist?"👑 ":""}${q.emoji} ${q.name}
+        </div>
+        <div style="color:${bc.text};font-size:12px;font-weight:700;text-transform:capitalize">
+          ${bracket} bracket · ${calcPts(q.id)} pts so far
+        </div>
+      </div>
+      <div style="font-size:36px" id="finale-icon-${q.id}">${r.finalist?"🏆":"○"}</div>
+    </div>`;
+  });
 }
 
-function winTag(qid, active) {
-  const c = "#f9a825", bg = "#fff9c4";
-  return `<div class="tag" id="tag-${qid}-finalist"
-    style="border-color:${active?c:"#eee"};background:${active?bg:"transparent"};color:${active?c:"#bbb"}"
-    onclick="toggleFinalist('${qid}')">👑 WINNER (25pts)</div>`;
+// Build an episode grid (shared by brackets and semis)
+function buildEpGrid(qid, epArr, labels, isSemi) {
+  const gridId = isSemi ? `semi-grid-${qid}` : `grid-${qid}`;
+  let html = `<div class="ep-grid" style="grid-template-columns:repeat(${labels.length},1fr)" id="${gridId}">`;
+  labels.forEach((lbl, i) => {
+    const cur = epArr[i];
+    html += `<div class="ep-col"><div class="ep-label">${lbl}</div>`;
+    EP_OPTS.forEach(o => {
+      const on = cur === o.key;
+      html += `<button class="ep-btn${on?" on":""}" id="epbtn-${qid}-${isSemi?"s":"b"}-${i}-${o.key}"
+        style="${on?`border-color:${o.color};background:${o.color}`:""}"
+        onclick="setEp('${qid}',${i},'${o.key}',${isSemi})">
+        ${o.label}${on?` +${o.pts}`:""}
+      </button>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+  return html;
 }
 
-function toggleTag(qid, field, activeColor, activeBg) {
-  if (!results[qid]) results[qid] = {};
-  results[qid][field] = !results[qid][field];
-  const el = document.getElementById(`tag-${qid}-${field}`);
-  const active = results[qid][field];
-  el.style.borderColor = active ? activeColor : "#eee";
-  el.style.background  = active ? activeBg : "transparent";
-  el.style.color       = active ? activeColor : "#bbb";
+function setEp(qid, idx, val, isSemi) {
+  const r = getR(qid);
+  const key = isSemi ? "semiEpisodes" : "episodes";
+  const arr = [...r[key]];
+  arr[idx] = arr[idx] === val ? null : val;
+  if (!results[qid]) results[qid] = { episodes:[null,null,null], semiEpisodes:[null,null], advances:false, finalist:false };
+  results[qid][key] = arr;
+
+  // Re-render just the affected grid
+  const epArr = isSemi ? results[qid].semiEpisodes : results[qid].episodes;
+  const labels = isSemi ? SEP : Object.entries(BEP).find(([b]) => QUEENS[b].some(q => q.id === qid))?.[1] || [];
+  const gridId = isSemi ? `semi-grid-${qid}` : `grid-${qid}`;
+  const el = document.getElementById(gridId);
+  if (el) el.outerHTML = buildEpGrid(qid, epArr, labels, isSemi);
+
+  // Update pts display
+  const ptsEl = document.getElementById(isSemi ? `pts-semi-${qid}` : `pts-${qid}`);
+  if (ptsEl) ptsEl.textContent = calcPts(qid) + " pts" + (isSemi ? " total" : "");
 }
 
-function toggleAdv(qid) {
-  const idx = advancers.indexOf(qid);
-  if (idx >= 0) advancers.splice(idx, 1); else advancers.push(qid);
-  const el = document.getElementById(`tag-${qid}-adv`);
-  const active = advancers.includes(qid);
-  el.style.borderColor = active ? "var(--purple)" : "#eee";
-  el.style.background  = active ? "var(--purple-light)" : "transparent";
-  el.style.color       = active ? "var(--purple)" : "#bbb";
+function toggleAdvances(qid) {
+  if (!results[qid]) results[qid] = { episodes:[null,null,null], semiEpisodes:[null,null], advances:false, finalist:false };
+  results[qid].advances = !results[qid].advances;
+  const el = document.getElementById(`adv-${qid}`);
+  const on = results[qid].advances;
+  el.style.borderColor = on ? "var(--purple)" : "#eee";
+  el.style.background  = on ? "var(--purple-light)" : "transparent";
+  el.style.color       = on ? "var(--purple)" : "#bbb";
+  // Re-render semis and finale sections since advancing queens change
+  renderResultsSemis();
+  renderResultsFinale();
 }
 
 function toggleFinalist(qid) {
-  const prev = finalist;
-  finalist = finalist === qid ? null : qid;
-  // reset old
-  if (prev) {
-    const el = document.getElementById(`tag-${prev}-finalist`);
-    if (el) { el.style.borderColor="#eee"; el.style.background="transparent"; el.style.color="#bbb"; }
-  }
-  if (finalist) {
-    const el = document.getElementById(`tag-${finalist}-finalist`);
-    if (el) { el.style.borderColor="#f9a825"; el.style.background="#fff9c4"; el.style.color="#f9a825"; }
-  }
+  // Clear previous winner
+  ALL_QUEENS.forEach(q => {
+    if (results[q.id]) {
+      const wasWinner = results[q.id].finalist;
+      results[q.id].finalist = false;
+      if (wasWinner) {
+        const row = document.getElementById(`finale-row-${q.id}`);
+        const ico = document.getElementById(`finale-icon-${q.id}`);
+        if (row) { row.style.background="#fff"; row.style.borderColor="#eee"; row.style.boxShadow="0 2px 12px rgba(0,0,0,0.07)"; }
+        if (ico) ico.textContent = "○";
+      }
+    }
+  });
+  if (!results[qid]) results[qid] = { episodes:[null,null,null], semiEpisodes:[null,null], advances:false, finalist:false };
+  results[qid].finalist = true;
+  const row = document.getElementById(`finale-row-${qid}`);
+  const ico = document.getElementById(`finale-icon-${qid}`);
+  if (row) { row.style.background="#fffbe6"; row.style.borderColor="#ffd700"; row.style.boxShadow="0 4px 20px rgba(255,215,0,0.3)"; }
+  if (ico) ico.textContent = "🏆";
 }
 
 async function saveResults() {
-  const res = await apiPost({ action:"saveResults", results, advancers, finalist });
+  const res = await apiPost({ action:"saveResults", results });
   if (res.success) toast("✅ Results saved!");
   else toast("❌ Error saving. Try again.");
 }
 
-// ── LEADERBOARD ──
-function getScore(queens) {
-  let score = 0;
-  queens.forEach(id => {
-    const r = results[id] || {};
-    if (r.win)  score += 5;
-    if (r.top2) score += 3;
-    if (r.safe) score += 1;
-    if (advancers.includes(id)) score += 10;
-    if (finalist === id) score += 25;
-  });
-  return score;
-}
-
+// ── LEADERBOARD ───────────────────────────────────────────────────────────────
 async function loadLeaderboard() {
   const el = document.getElementById("leaderboard-content");
   el.innerHTML = '<div class="spinner"></div>';
@@ -596,18 +648,28 @@ async function loadLeaderboard() {
     apiFetch({ action:"getResults" }),
   ]);
 
-  results   = resultsData.results   || {};
-  advancers = resultsData.advancers || [];
-  finalist  = resultsData.finalist  || null;
+  // Load results into state (with migration)
+  const raw = resultsData.results || {};
+  results = {};
+  Object.keys(raw).forEach(qid => {
+    const r = raw[qid];
+    if (Array.isArray(r.episodes)) {
+      results[qid] = r;
+    } else {
+      results[qid] = {
+        episodes: [r.win?"win":r.top2?"top2":r.safe?"safe":r.elim?"elim":null, null, null],
+        semiEpisodes: [null, null],
+        advances: r.advances || false,
+        finalist: r.finalist || false,
+      };
+    }
+  });
 
   const players = (playersData.players || [])
-    .map(p => ({ ...p, score: getScore(p.queens) }))
+    .map(p => ({ ...p, score: p.queens.reduce((s, qid) => s + calcPts(qid), 0) }))
     .sort((a,b) => b.score - a.score);
 
-  if (!players.length) {
-    el.innerHTML = '<p class="empty">No picks submitted yet!</p>';
-    return;
-  }
+  if (!players.length) { el.innerHTML = '<p class="empty">No picks submitted yet!</p>'; return; }
 
   const rankStyle = [
     "background:linear-gradient(135deg,#ffd700,#ff8c42);color:#fff",
@@ -616,14 +678,14 @@ async function loadLeaderboard() {
   ];
 
   el.innerHTML = players.map((p,i) => {
-    const queenNames = p.queens.map(id => {
+    const queenTags = p.queens.map(id => {
       const q = ALL_QUEENS.find(x => x.id === id);
       if (!q) return null;
-      const isWinner = finalist === id;
-      const isAdv = advancers.includes(id);
-      const r = results[id] || {};
-      const badge = isWinner?"👑":isAdv?"⬆️":r.win?"🏆":r.top2?"🥈":r.safe?"✅":r.elim?"❌":"";
-      return `<span class="lb-queen-tag">${badge} ${q.name.split(" ")[0]}</span>`;
+      const r = getR(id);
+      const allEps = [...r.episodes, ...r.semiEpisodes];
+      const badge = r.finalist?"👑":r.advances?"⬆️":allEps.includes("win")?"🏆":allEps.includes("top2")?"🥈":allEps.includes("safe")?"✅":allEps.includes("elim")?"❌":"";
+      const pts = calcPts(id);
+      return `<span class="lb-queen-tag">${badge} ${q.name.split(" ")[0]}${pts>0?` +${pts}`:""}</span>`;
     }).filter(Boolean).join("");
 
     return `<div class="lb-row" style="${i===0?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":""}">
@@ -631,7 +693,7 @@ async function loadLeaderboard() {
         <div class="lb-rank" style="${rankStyle[i]||"background:#f5f5f5;color:#aaa"}">${i===0?"👑":i+1}</div>
         <div style="min-width:0">
           <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">${p.player}</div>
-          <div class="lb-queens">${queenNames || '<span style="color:#bbb;font-size:12px">No picks yet</span>'}</div>
+          <div class="lb-queens">${queenTags||'<span style="color:#bbb;font-size:12px">No picks yet</span>'}</div>
         </div>
       </div>
       <div class="lb-score">${p.score}</div>
@@ -639,10 +701,11 @@ async function loadLeaderboard() {
   }).join("");
 }
 
-// ── Init ──
+// ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
   renderPicksExistingPlayers();
 });
 </script>
+
 </body>
 </html>
