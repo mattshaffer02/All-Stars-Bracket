@@ -142,7 +142,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
       <h1>All Stars 11</h1>
       <p class="subtitle">Tournament of All Stars · Pick 'Em</p>
     </div>
-    <button class="home-btn home-btn-picks" onclick="showView('picks')">🗳️ Submit My Picks</button>
+    <button class="home-btn home-btn-picks" onclick="showView('picks')">👀 View My Picks <span style="font-size:13px;font-weight:400;opacity:.7">(locked)</span></button>
     <button class="home-btn home-btn-mvq" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
     <button class="home-btn home-btn-results" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <button class="home-btn home-btn-board" onclick="showView('leaderboard')">🏆 Leaderboard</button>
@@ -165,7 +165,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
     <h2>🗳️ Your Picks</h2>
     <div id="picks-locked-banner" style="display:none;background:#ffd0e8;border:2px solid #ff6b9d;border-radius:14px;padding:14px 18px;margin-bottom:20px">
       <div style="font-family:'Playfair Display',serif;font-weight:700;color:#c2185b;font-size:15px;margin-bottom:4px">🔒 Picks are locked</div>
-      <div style="font-size:13px;color:#555">The season started on ${PICKS_LOCK_DATE} — picks can no longer be changed. You can still view your selections below.</div>
+      <div style="font-size:13px;color:#555">The season started on May 8, 2026 — picks can no longer be changed. You can still view your selections below.</div>
     </div>
     <div id="picks-name-section">
       <p style="color:#888;font-size:14px;margin-bottom:12px">Enter your name to view your picks.</p>
@@ -219,14 +219,14 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
 
 ```
 <!-- HOW IT WORKS -->
-<div class="card" style="margin-bottom:20px;background:var(--purple-light);border:2px solid var(--purple)">
-  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:10px;color:var(--purple-dark)">📖 How It Works</div>
-  <div style="font-size:14px;color:#444;line-height:1.7">
+<div class="card" style="margin-bottom:20px;background:#e8d8ff;border:2px solid #9c6fde">
+  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:10px;color:#4a148c">📖 How It Works</div>
+  <div style="font-size:14px;color:#333;line-height:1.7">
     <p style="margin-bottom:8px">After each episode, vote for the queen you think was the <strong>Most Valuable Queen</strong> — the one who impressed you most, even if she didn't win.</p>
-    <p style="margin-bottom:8px">🗓️ <strong>Voting closes the Monday after each episode airs.</strong> Episodes drop Fridays on Paramount+ — you have the weekend to watch and vote.</p>
-    <p style="margin-bottom:8px">⭐ <strong>+2 points</strong> if your MVQ pick matches the group consensus (the queen who gets the most votes). In a tie, all tied queens count — everyone who picked any of them gets +2.</p>
-    <p style="margin-bottom:8px">🔒 <strong>Results are hidden while voting is open.</strong> You'll see how many people have voted, but not who they picked — no bandwagon voting!</p>
-    <p>👤 <strong>To vote:</strong> select your name from the list below, then tap your pick. You can change your vote any time before the admin closes it.</p>
+    <p style="margin-bottom:8px">🗓️ <strong>Voting closes Wednesday night</strong> after the premiere episodes, and <strong>Monday night</strong> for all other episodes. You have the weekend to watch and vote.</p>
+    <p style="margin-bottom:8px">⭐ <strong>+2 points</strong> if your pick matches the group consensus. In a tie, everyone who voted for any tied queen gets +2.</p>
+    <p style="margin-bottom:8px">🔒 <strong>Results hidden while voting is open</strong> — you'll only see how many people have voted, not who they picked.</p>
+    <p>👤 <strong>To vote:</strong> scroll down, tap your name, pick your queen, hit Submit.</p>
   </div>
 </div>
 
@@ -461,7 +461,14 @@ function selectExistingPlayer(name) {
 function renderPicksForm() {
   document.getElementById("picks-name-section").style.display = "none";
   document.getElementById("picks-form").style.display = "block";
-  document.getElementById("picks-player-label").textContent = "Picks for " + currentPlayer;
+  document.getElementById("picks-player-label").textContent = (PICKS_LOCKED ? "👀 Picks for " : "Picks for ") + currentPlayer;
+
+  // Hide save button and count when locked
+  const saveBtn = document.querySelector("#picks-form .btn-gradient");
+  const countEl = document.getElementById("picks-count");
+  if (saveBtn) saveBtn.style.display = PICKS_LOCKED ? "none" : "block";
+  if (countEl) countEl.style.display = PICKS_LOCKED ? "none" : "block";
+
   const container = document.getElementById("picks-brackets");
   container.innerHTML = "";
   Object.entries(QUEENS).forEach(([bracket, queens]) => {
@@ -472,9 +479,12 @@ function renderPicksForm() {
     </div>`;
     queens.forEach(q => {
       const picked = !!currentPicks[q.id];
+      // When locked: no onclick, muted cursor, slightly dimmed unpicked rows
+      const clickAttr = PICKS_LOCKED ? "" : `onclick="togglePick('${q.id}','${bracket}')"`;
+      const cursorStyle = PICKS_LOCKED ? "cursor:default;opacity:" + (picked ? "1" : "0.5") : "cursor:pointer";
       html += `<div class="queen-row" id="qrow-${q.id}"
-        style="background:${picked?bc.light:"#fff"};border-color:${picked?bc.bg:"#eee"}"
-        onclick="togglePick('${q.id}','${bracket}')">
+        style="background:${picked?bc.light:"#fff"};border-color:${picked?bc.bg:"#eee"};${cursorStyle}"
+        ${clickAttr}>
         <div>
           <div class="queen-name">${q.emoji} ${q.name}</div>
           <div class="queen-season">${q.season}</div>
@@ -487,10 +497,11 @@ function renderPicksForm() {
     });
     container.innerHTML += html;
   });
-  updatePicksCount();
+  if (!PICKS_LOCKED) updatePicksCount();
 }
 
 function togglePick(id, bracket) {
+  if (PICKS_LOCKED) return; // safety guard
   currentPicks[id] = !currentPicks[id];
   const bc = BC[bracket];
   const picked = currentPicks[id];
@@ -510,7 +521,7 @@ function updatePicksCount() {
 }
 
 async function savePicks() {
-  if (!currentPlayer) return;
+  if (!currentPlayer || PICKS_LOCKED) return;
   const queens = Object.keys(currentPicks).filter(id => currentPicks[id]);
   const res = await apiPost({ action:"savePicks", player:currentPlayer, queens });
   if (res.success) {
@@ -923,6 +934,28 @@ let mvqPastVotes = [];
 let mvqVoteState = {};
 
 async function loadMvqView() {
+  const noOpen  = document.getElementById("mvq-no-open");
+  const openDiv = document.getElementById("mvq-open-vote");
+
+  // First: show what should be open RIGHT NOW based purely on the schedule
+  // This gives instant feedback even before the API responds
+  const scheduledOpen = getMvqCurrentlyOpen();
+  if (scheduledOpen.length) {
+    noOpen.style.display  = "none";
+    openDiv.innerHTML = scheduledOpen.map((ep, vi) =>
+      `<div class="card" style="border:3px solid #ff8c42;background:#fff;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:17px">⭐ ${ep.episode} MVQ</div>
+          <span style="background:#ff8c42;color:#fff;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700">VOTE NOW</span>
+        </div>
+        <div style="color:#666;font-size:13px;margin-bottom:12px">🗓️ Closes: ${getDeadlineFromClose(ep.closeUTC)}</div>
+        <div style="background:#fff3e0;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#c94f00;font-weight:700">
+          Loading vote status…
+        </div>
+      </div>`
+    ).join("");
+  }
+
   try {
     const data = await apiFetch({ action:"getMvq" });
     mvqPastVotes = data.past || [];
@@ -930,9 +963,8 @@ async function loadMvqView() {
     const closedEps = new Set(mvqPastVotes.map(v => v.episode));
     const openEps   = new Set(sheetOpen.map(v => v.episode));
 
-    // Auto-open any scheduled episodes not yet open or closed
-    const shouldBeOpen = getMvqCurrentlyOpen();
-    for (const ep of shouldBeOpen) {
+    // Auto-open any scheduled episodes not yet tracked in the Sheet
+    for (const ep of scheduledOpen) {
       if (!closedEps.has(ep.episode) && !openEps.has(ep.episode)) {
         await apiPost({ action:"openMvqVote", episode:ep.episode, deadline:getDeadlineFromClose(ep.closeUTC) });
       }
@@ -941,11 +973,20 @@ async function loadMvqView() {
     const fresh = await apiFetch({ action:"getMvq" });
     mvqPastVotes = fresh.past || [];
     const freshOpen = fresh.open ? (Array.isArray(fresh.open) ? fresh.open : [fresh.open]) : [];
-    // Filter to only votes whose window is still valid
-    mvqOpenVotes = freshOpen.filter(v => {
-      const sched = MVQ_SCHEDULE.find(s => s.episode === v.episode);
-      if (!sched) return true;
-      return new Date() <= new Date(sched.closeUTC);
+
+    // Merge: use Sheet data where available, fall back to schedule data
+    mvqOpenVotes = scheduledOpen
+      .filter(ep => !mvqPastVotes.some(v => v.episode === ep.episode))
+      .map(ep => {
+        const sheetVote = freshOpen.find(v => v.episode === ep.episode);
+        return sheetVote || { episode:ep.episode, deadline:getDeadlineFromClose(ep.closeUTC), votes:{} };
+      });
+
+    // Also include any admin-forced open votes not in the schedule
+    freshOpen.forEach(v => {
+      if (!MVQ_SCHEDULE.find(s => s.episode === v.episode)) {
+        mvqOpenVotes.push(v);
+      }
     });
 
     renderMvqOpen();
@@ -953,7 +994,20 @@ async function loadMvqView() {
     if (mvqAdminUnlocked) renderMvqAdminActions();
   } catch(e) {
     console.error("MVQ load error:", e);
-    document.getElementById("mvq-no-open").style.display = "block";
+    // Even if Sheet fails, show the schedule-based votes so players can at least see what's open
+    // (voting will fail gracefully with an error toast)
+    if (scheduledOpen.length) {
+      mvqOpenVotes = scheduledOpen.map(ep => ({
+        episode: ep.episode,
+        deadline: getDeadlineFromClose(ep.closeUTC),
+        votes: {}
+      }));
+      renderMvqOpen();
+    } else {
+      noOpen.style.display = "block";
+      openDiv.style.display = "none";
+    }
+    renderMvqPast();
   }
 }
 
@@ -964,6 +1018,7 @@ function renderMvqOpen() {
   if (!mvqOpenVotes.length) {
     noOpen.style.display  = "block";
     openDiv.style.display = "none";
+    openDiv.innerHTML = "";
     return;
   }
   noOpen.style.display  = "none";
@@ -971,40 +1026,45 @@ function renderMvqOpen() {
 
   const total = allPlayers.length || "?";
 
-  // Render one card per open vote
   openDiv.innerHTML = mvqOpenVotes.map((vote, vi) => {
     const votes     = vote.votes || {};
     const voteCount = Object.keys(votes).length;
-    const stateKey  = vote.episode;
 
-    return `<div class="card" style="border:2px solid var(--orange);margin-bottom:16px" id="mvq-vote-card-${vi}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:17px">⭐ ${vote.episode} MVQ</div>
-        <span style="background:var(--orange);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">OPEN</span>
+    return `<div style="background:#fff;border:3px solid #ff8c42;border-radius:18px;padding:18px 20px;margin-bottom:20px" id="mvq-vote-card-${vi}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:#2d0036">⭐ ${vote.episode}</div>
+        <span style="background:#ff8c42;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">🗳️ VOTE OPEN</span>
       </div>
-      <div style="color:#888;font-size:13px;margin-bottom:4px">🗓️ Closes: ${vote.deadline}</div>
-      <div style="color:var(--purple);font-size:13px;font-weight:700;margin-bottom:12px">${voteCount} of ${total} players have voted</div>
+      <div style="color:#555;font-size:13px;margin-bottom:4px">🗓️ Closes: ${vote.deadline}</div>
+      <div style="background:#ffe0c8;border-radius:10px;padding:8px 14px;margin-bottom:16px;font-size:13px;color:#c94f00;font-weight:700">
+        ${voteCount} of ${total} players have voted — results hidden until closed
+      </div>
 
       <div id="mvq-player-select-${vi}">
-        <p style="color:#888;font-size:13px;margin-bottom:8px">Select your name to vote:</p>
-        <div class="pill-row">
-          ${(allPlayers.length ? allPlayers : []).map(p =>
-            `<div class="pill" style="border-color:var(--orange);color:var(--orange-dark)"
-              onclick="selectMvqPlayer(${vi},'${p.player}')">${p.player}</div>`
-          ).join("") || '<p style="color:#bbb;font-size:13px">No players yet.</p>'}
+        <p style="color:#555;font-size:14px;font-weight:700;margin-bottom:10px">👇 Tap your name to vote:</p>
+        <div class="pill-row" style="gap:10px">
+          ${(allPlayers.length ? allPlayers : []).map(p => {
+            const hasVoted = !!(votes[p.player]);
+            return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
+              background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
+              cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
+              onclick="selectMvqPlayer(${vi},'${p.player}')">
+              ${p.player}${hasVoted?" ✓":""}
+            </div>`;
+          }).join("") || '<p style="color:#bbb;font-size:13px">No players yet — add players in the Picks tab first.</p>'}
         </div>
       </div>
 
       <div id="mvq-picker-${vi}" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px" id="mvq-voting-as-${vi}"></div>
-          <button class="btn btn-outline btn-sm" onclick="resetMvqPlayer(${vi})">← Change</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036" id="mvq-voting-as-${vi}"></div>
+          <button style="padding:8px 14px;border-radius:10px;border:2px solid #9c6fde;background:#fff;color:#9c6fde;cursor:pointer;font-family:'Playfair Display',serif;font-size:13px;font-weight:700" onclick="resetMvqPlayer(${vi})">← Change</button>
         </div>
-        <p style="color:#888;font-size:13px;margin-bottom:10px">Who was the most valuable queen this episode?</p>
+        <p style="color:#666;font-size:13px;margin-bottom:12px">Who was the most valuable queen this episode? Tap to select.</p>
         <div id="mvq-queen-list-${vi}"></div>
-        <button class="btn btn-gradient" style="width:100%;margin-top:10px"
+        <button style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#ff6b9d,#9c6fde);color:#fff;cursor:pointer;font-family:'Playfair Display',serif;font-size:16px;font-weight:700"
           onclick="submitMvqVote(${vi},'${vote.episode}')" id="mvq-submit-${vi}" disabled>Submit Vote</button>
-        <div id="mvq-feedback-${vi}" style="display:none;text-align:center;margin-top:8px;color:var(--purple);font-size:13px;font-weight:700"></div>
+        <div id="mvq-feedback-${vi}" style="display:none;text-align:center;margin-top:10px;color:#9c6fde;font-size:14px;font-weight:700"></div>
       </div>
     </div>`;
   }).join("");
@@ -1028,14 +1088,14 @@ function selectMvqPlayer(vi, name) {
     const sel = existing === q.id;
     return `<div onclick="selectMvqQueen(${vi},'${q.id}')" id="mvq-qrow-${vi}-${q.id}"
       style="display:flex;justify-content:space-between;align-items:center;
-        background:${sel?"var(--orange-light)":"#fff"};border:2px solid ${sel?"var(--orange)":"#eee"};
+        background:${sel?"#ffe0c8":"#fff"};border:2px solid ${sel?"#ff8c42":"#dddddd"};
         border-radius:12px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:all .15s">
       <div>
-        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px">${q.emoji} ${q.name}</div>
-        <div style="color:#999;font-size:12px">${q.season}</div>
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px;color:#2d0036">${q.emoji} ${q.name}</div>
+        <div style="color:#888;font-size:12px">${q.season}</div>
       </div>
       <div id="mvq-qchk-${vi}-${q.id}" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;
-        background:${sel?"var(--orange)":"transparent"};border:2px solid ${sel?"var(--orange)":"#ddd"};
+        background:${sel?"#ff8c42":"transparent"};border:2px solid ${sel?"#ff8c42":"#ccc"};
         display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">${sel?"✓":""}</div>
     </div>`;
   }).join("");
@@ -1060,8 +1120,8 @@ function selectMvqQueen(vi, qid) {
   mvqVoteState[vi].queen = qid;
   const row = document.getElementById(`mvq-qrow-${vi}-${qid}`);
   const chk = document.getElementById(`mvq-qchk-${vi}-${qid}`);
-  if (row) { row.style.background="var(--orange-light)"; row.style.borderColor="var(--orange)"; }
-  if (chk) { chk.style.background="var(--orange)"; chk.style.borderColor="var(--orange)"; chk.textContent="✓"; }
+  if (row) { row.style.background="#ffe0c8"; row.style.borderColor="#ff8c42"; }
+  if (chk) { chk.style.background="#ff8c42"; chk.style.borderColor="#ff8c42"; chk.textContent="✓"; }
   document.getElementById(`mvq-submit-${vi}`).disabled = false;
 }
 
