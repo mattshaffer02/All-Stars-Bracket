@@ -885,7 +885,28 @@ async function loadLeaderboard() {
   }
 }
 
-// ── MVQ AUTO-SCHEDULE ─────────────────────────────────────────────────────────
+// Which queens are eligible for MVQ by episode number
+// Eps 1-3: Pink (Bracket 1), Eps 4-6: Orange (Bracket 2), Eps 7-9: Purple (Bracket 3)
+// Eps 10-11: all advancing queens, Ep 12: all advancing queens (finale)
+function getMvqEligibleQueens(episodeLabel) {
+  const num = parseInt(episodeLabel.replace(/\D/g,""), 10);
+  if (num >= 1 && num <= 3) return QUEENS.Pink;
+  if (num >= 4 && num <= 6) return QUEENS.Orange;
+  if (num >= 7 && num <= 9) return QUEENS.Purple;
+  // Semis / finale — use advancing queens, fall back to all
+  const advancing = ALL_QUEENS.filter(q => getR(q.id).advances);
+  return advancing.length ? advancing : ALL_QUEENS;
+}
+
+// MVQ votes stored in localStorage so they work even before Sheet has MVQ endpoints
+const MVQ_VOTES_KEY = "as11_mvq_votes"; // { episodeName: { playerName: queenId } }
+
+function loadLocalMvqVotes() {
+  try { return JSON.parse(localStorage.getItem(MVQ_VOTES_KEY) || "{}"); } catch { return {}; }
+}
+function saveLocalMvqVotes(data) {
+  try { localStorage.setItem(MVQ_VOTES_KEY, JSON.stringify(data)); } catch {}
+}
 // Each entry has its own openTime and closeTime (Monday 11:59pm MT after air date).
 // Episodes 1 & 2 both aired May 8 — each gets its own vote window.
 // MT (MDT) = UTC-6. 5pm MT = 23:00 UTC.
@@ -936,26 +957,32 @@ let mvqVoteState = {};
 async function loadMvqView() {
   const noOpen  = document.getElementById("mvq-no-open");
   const openDiv = document.getElementById("mvq-open-vote");
-
-  // First: show what should be open RIGHT NOW based purely on the schedule
-  // This gives instant feedback even before the API responds
   const scheduledOpen = getMvqCurrentlyOpen();
+  const localVotes = loadLocalMvqVotes();
+
+  // Immediately show schedule-based placeholders so UI is never blank
   if (scheduledOpen.length) {
-    noOpen.style.display  = "none";
+    noOpen.style.display = "none";
     openDiv.innerHTML = scheduledOpen.map((ep, vi) =>
-      `<div class="card" style="border:3px solid #ff8c42;background:#fff;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:17px">⭐ ${ep.episode} MVQ</div>
-          <span style="background:#ff8c42;color:#fff;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700">VOTE NOW</span>
+      `<div style="background:#fff;border:3px solid #ff8c42;border-radius:18px;padding:18px 20px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:#2d0036">⭐ ${ep.episode}</div>
+          <span style="background:#ff8c42;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">🗳️ VOTE OPEN</span>
         </div>
-        <div style="color:#666;font-size:13px;margin-bottom:12px">🗓️ Closes: ${getDeadlineFromClose(ep.closeUTC)}</div>
-        <div style="background:#fff3e0;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#c94f00;font-weight:700">
-          Loading vote status…
-        </div>
+        <div style="color:#555;font-size:13px;margin-bottom:8px">🗓️ Closes: ${getDeadlineFromClose(ep.closeUTC)}</div>
+        <div style="color:#999;font-size:13px">Loading…</div>
       </div>`
     ).join("");
   }
 
+  // Build open votes from schedule + local votes (works even without Sheet)
+  mvqOpenVotes = scheduledOpen.map(ep => ({
+    episode:  ep.episode,
+    deadline: getDeadlineFromClose(ep.closeUTC),
+    votes:    localVotes[ep.episode] || {}
+  }));
+
+  // Try to sync with Sheet, but don't block the UI
   try {
     const data = await apiFetch({ action:"getMvq" });
     mvqPastVotes = data.past || [];
@@ -963,52 +990,39 @@ async function loadMvqView() {
     const closedEps = new Set(mvqPastVotes.map(v => v.episode));
     const openEps   = new Set(sheetOpen.map(v => v.episode));
 
-    // Auto-open any scheduled episodes not yet tracked in the Sheet
+    // Auto-open in Sheet if not already there
     for (const ep of scheduledOpen) {
       if (!closedEps.has(ep.episode) && !openEps.has(ep.episode)) {
-        await apiPost({ action:"openMvqVote", episode:ep.episode, deadline:getDeadlineFromClose(ep.closeUTC) });
+        apiPost({ action:"openMvqVote", episode:ep.episode, deadline:getDeadlineFromClose(ep.closeUTC) });
       }
     }
 
-    const fresh = await apiFetch({ action:"getMvq" });
-    mvqPastVotes = fresh.past || [];
-    const freshOpen = fresh.open ? (Array.isArray(fresh.open) ? fresh.open : [fresh.open]) : [];
-
-    // Merge: use Sheet data where available, fall back to schedule data
+    // Merge Sheet votes on top of local votes
     mvqOpenVotes = scheduledOpen
-      .filter(ep => !mvqPastVotes.some(v => v.episode === ep.episode))
+      .filter(ep => !closedEps.has(ep.episode))
       .map(ep => {
-        const sheetVote = freshOpen.find(v => v.episode === ep.episode);
-        return sheetVote || { episode:ep.episode, deadline:getDeadlineFromClose(ep.closeUTC), votes:{} };
+        const sheetVote = sheetOpen.find(v => v.episode === ep.episode);
+        const sheetVotes = sheetVote?.votes || {};
+        const local = localVotes[ep.episode] || {};
+        return {
+          episode:  ep.episode,
+          deadline: getDeadlineFromClose(ep.closeUTC),
+          votes:    { ...local, ...sheetVotes }
+        };
       });
-
-    // Also include any admin-forced open votes not in the schedule
-    freshOpen.forEach(v => {
-      if (!MVQ_SCHEDULE.find(s => s.episode === v.episode)) {
-        mvqOpenVotes.push(v);
-      }
-    });
-
-    renderMvqOpen();
-    renderMvqPast();
-    if (mvqAdminUnlocked) renderMvqAdminActions();
   } catch(e) {
-    console.error("MVQ load error:", e);
-    // Even if Sheet fails, show the schedule-based votes so players can at least see what's open
-    // (voting will fail gracefully with an error toast)
-    if (scheduledOpen.length) {
-      mvqOpenVotes = scheduledOpen.map(ep => ({
-        episode: ep.episode,
-        deadline: getDeadlineFromClose(ep.closeUTC),
-        votes: {}
-      }));
-      renderMvqOpen();
-    } else {
-      noOpen.style.display = "block";
-      openDiv.style.display = "none";
-    }
-    renderMvqPast();
+    console.warn("Sheet sync failed, using local votes only:", e);
+    // mvqOpenVotes already set from local above — just keep it
   }
+
+  if (!mvqOpenVotes.length && !scheduledOpen.length) {
+    noOpen.style.display = "block";
+    openDiv.style.display = "none";
+  }
+
+  renderMvqOpen();
+  renderMvqPast();
+  if (mvqAdminUnlocked) renderMvqAdminActions();
 }
 
 function renderMvqOpen() {
@@ -1083,8 +1097,11 @@ function selectMvqPlayer(vi, name) {
   const existing = (vote.votes || {})[name];
   if (existing) mvqVoteState[vi].queen = existing;
 
+  // Only show queens from the relevant bracket for this episode
+  const eligibleQueens = getMvqEligibleQueens(vote.episode);
+
   const list = document.getElementById(`mvq-queen-list-${vi}`);
-  list.innerHTML = ALL_QUEENS.map(q => {
+  list.innerHTML = eligibleQueens.map(q => {
     const sel = existing === q.id;
     return `<div onclick="selectMvqQueen(${vi},'${q.id}')" id="mvq-qrow-${vi}-${q.id}"
       style="display:flex;justify-content:space-between;align-items:center;
@@ -1102,9 +1119,12 @@ function selectMvqPlayer(vi, name) {
 
   const btn = document.getElementById(`mvq-submit-${vi}`);
   btn.disabled = !existing;
+  const fb = document.getElementById(`mvq-feedback-${vi}`);
   if (existing) {
-    document.getElementById(`mvq-feedback-${vi}`).style.display = "block";
-    document.getElementById(`mvq-feedback-${vi}`).textContent   = "✏️ Already voted — tap to change.";
+    fb.style.display  = "block";
+    fb.textContent    = "✏️ Already voted — tap to change.";
+  } else {
+    fb.style.display = "none";
   }
 }
 
@@ -1137,23 +1157,47 @@ async function submitMvqVote(vi, episode) {
   const btn = document.getElementById(`mvq-submit-${vi}`);
   btn.textContent = "Saving…"; btn.disabled = true;
   try {
-    const res = await apiPost({ action:"saveMvqVote", episode, player:state.player, queen:state.queen });
-    if (res.success) {
-      if (!mvqOpenVotes[vi].votes) mvqOpenVotes[vi].votes = {};
-      mvqOpenVotes[vi].votes[state.player] = state.queen;
-      const total = allPlayers.length || "?";
-      const count = Object.keys(mvqOpenVotes[vi].votes).length;
-      // Update count display inside the card
-      const card = document.getElementById(`mvq-vote-card-${vi}`);
-      const countEl = card?.querySelector(`[style*="color:var(--purple)"]`);
-      if (countEl) countEl.textContent = `${count} of ${total} players have voted`;
-      const fb = document.getElementById(`mvq-feedback-${vi}`);
-      if (fb) { fb.style.display="block"; fb.textContent="✅ Vote saved!"; }
-      toast("✅ MVQ vote saved!");
-    } else {
-      toast("❌ Error saving. Try again.");
+    // Always save to localStorage first — this always works
+    const localVotes = loadLocalMvqVotes();
+    if (!localVotes[episode]) localVotes[episode] = {};
+    localVotes[episode][state.player] = state.queen;
+    saveLocalMvqVotes(localVotes);
+
+    // Update in-memory state
+    if (!mvqOpenVotes[vi].votes) mvqOpenVotes[vi].votes = {};
+    mvqOpenVotes[vi].votes[state.player] = state.queen;
+
+    // Try Sheet sync (non-blocking — failure is fine)
+    apiPost({ action:"saveMvqVote", episode, player:state.player, queen:state.queen }).catch(() => {});
+
+    // Update UI
+    const total = allPlayers.length || "?";
+    const count = Object.keys(mvqOpenVotes[vi].votes).length;
+    const fb = document.getElementById(`mvq-feedback-${vi}`);
+    if (fb) { fb.style.display="block"; fb.textContent="✅ Vote saved!"; fb.style.color="#2e7d32"; }
+
+    // Update the vote count display
+    const card = document.getElementById(`mvq-vote-card-${vi}`);
+    const countEl = card?.querySelector('[style*="color:#c94f00"]');
+    if (countEl) countEl.textContent = `${count} of ${total} players have voted — results hidden until closed`;
+
+    // Update player pill to show checkmark
+    const playerPills = document.getElementById(`mvq-player-select-${vi}`);
+    if (playerPills) {
+      const pills = playerPills.querySelectorAll("div[onclick]");
+      pills.forEach(pill => {
+        if (pill.textContent.trim().startsWith(state.player)) {
+          pill.style.background = "#ff8c42";
+          pill.style.color = "#fff";
+          pill.style.borderColor = "#ff8c42";
+          if (!pill.textContent.includes("✓")) pill.textContent = state.player + " ✓";
+        }
+      });
     }
-  } catch(e) { toast("❌ Error saving. Try again."); }
+    toast("✅ MVQ vote saved!");
+  } catch(e) {
+    toast("❌ Error saving vote. Try again.");
+  }
   btn.textContent = "Submit Vote"; btn.disabled = false;
 }
 
@@ -1165,7 +1209,7 @@ function renderMvqPast() {
     el.innerHTML = '<p style="color:#bbb;font-size:14px;text-align:center;padding:20px 0">No closed votes yet.</p>';
     return;
   }
-  el.innerHTML = mvqPastVotes.map(vote => {
+  el.innerHTML = mvqPastVotes.map((vote, vi) => {
     const votes   = vote.votes || {};
     const tally   = {};
     Object.values(votes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
@@ -1175,46 +1219,46 @@ function renderMvqPast() {
     const tallyHtml = Object.entries(tally)
       .sort((a,b) => b[1]-a[1])
       .map(([qid, count]) => {
-        const q    = ALL_QUEENS.find(x => x.id === qid);
-        const isW  = winners.includes(qid);
+        const q   = ALL_QUEENS.find(x => x.id === qid);
+        const isW = winners.includes(qid);
         return `<div style="display:flex;justify-content:space-between;align-items:center;
           padding:8px 12px;border-radius:10px;margin-bottom:6px;
-          background:${isW?"var(--orange-light)":"#f9f9f9"};
-          border:2px solid ${isW?"var(--orange)":"transparent"}">
-          <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px">
+          background:${isW?"#ffe0c8":"#f4f4f4"};
+          border:2px solid ${isW?"#ff8c42":"transparent"}">
+          <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px;color:#2d0036">
             ${isW?"⭐ ":""}${q?q.emoji+" "+q.name:qid}
           </span>
-          <span style="font-weight:700;color:${isW?"var(--orange-dark)":"#999"}">${count} vote${count!==1?"s":""}</span>
+          <span style="font-weight:700;color:${isW?"#c94f00":"#999"}">${count} vote${count!==1?"s":""}</span>
         </div>`;
       }).join("");
 
-    // Show who voted for whom
     const voterHtml = Object.entries(votes).map(([player, qid]) => {
-      const q = ALL_QUEENS.find(x => x.id === qid);
+      const q   = ALL_QUEENS.find(x => x.id === qid);
       const isW = winners.includes(qid);
-      return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f5f0ff">
-        <span style="color:#666">${player}</span>
-        <span style="font-weight:700;color:${isW?"var(--orange-dark)":"#999"}">${q?q.emoji+" "+q.name.split(" ")[0]:qid}${isW?" ⭐":""}</span>
+      return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #eee">
+        <span style="color:#555">${player}</span>
+        <span style="font-weight:700;color:${isW?"#c94f00":"#999"}">${q?q.emoji+" "+q.name.split(" ")[0]:qid}${isW?" ⭐":""}</span>
       </div>`;
     }).join("");
 
     const winnerNames = winners.map(qid => { const q=ALL_QUEENS.find(x=>x.id===qid); return q?q.name:qid; }).join(" & ");
 
-    return `<div class="card" style="margin-bottom:16px">
+    return `<div style="background:#fff;border-radius:18px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px">⭐ ${vote.episode}</div>
-        <span style="background:#e8f5e9;color:#388e3c;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">CLOSED</span>
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036">⭐ ${vote.episode}</div>
+        <span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">CLOSED</span>
       </div>
-      <div style="background:var(--orange-light);border-radius:10px;padding:10px 14px;margin-bottom:12px">
-        <div style="font-size:12px;color:#888;margin-bottom:2px">GROUP MVQ</div>
-        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:var(--orange-dark)">⭐ ${winnerNames}</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">Players who picked ${winnerNames} earned +2 pts</div>
+      <div style="background:#ffe0c8;border-radius:10px;padding:10px 14px;margin-bottom:12px">
+        <div style="font-size:12px;color:#666;margin-bottom:2px">GROUP MVQ WINNER</div>
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#c94f00">⭐ ${winnerNames}</div>
+        <div style="font-size:12px;color:#666;margin-top:2px">Players who picked ${winnerNames} earned +2 pts</div>
       </div>
       <div style="margin-bottom:12px">${tallyHtml}</div>
-      <details>
-        <summary style="color:var(--purple);font-size:13px;cursor:pointer;font-weight:700;margin-bottom:8px">👁 See who voted for whom</summary>
-        <div style="margin-top:8px">${voterHtml}</div>
-      </details>
+      <button onclick="var p=document.getElementById('past-voters-${vi}');p.style.display=p.style.display==='none'?'block':'none'"
+        style="background:none;border:none;cursor:pointer;color:#9c6fde;font-size:13px;font-weight:700;padding:4px 0">
+        👁 See who voted for whom
+      </button>
+      <div id="past-voters-${vi}" style="display:none;margin-top:8px">${voterHtml}</div>
     </div>`;
   }).join("");
 }
