@@ -11,15 +11,17 @@
 
 :root {
 –pink:        #ff6b9d;
-–pink-light:  #ffe0ee;
+–pink-light:  #ffd0e8;
 –pink-dark:   #c2185b;
 –orange:      #ff8c42;
-–orange-light:#fff0e6;
-–orange-dark: #e65100;
+–orange-light:#ffe0c8;
+–orange-dark: #c94f00;
 –purple:      #9c6fde;
-–purple-light:#f3ecff;
+–purple-light:#e8d8ff;
 –purple-dark: #4a148c;
 –black:       #2d0036;
+–grey-bg:     #f4f4f4;
+–grey-border: #dddddd;
 }
 
 body { font-family: Georgia, serif; background: linear-gradient(160deg,#fff5fa 0%,#f3ecff 50%,#fff8e1 100%); min-height:100vh; color:var(–black); }
@@ -52,8 +54,8 @@ h2 { font-family:‘Playfair Display’,serif; font-size:24px; color:var(–blac
 .btn-sm { padding:8px 16px; font-size:14px; border-radius:10px; }
 
 /* INPUT */
-input[type=text], input[type=password] { width:100%; padding:13px 16px; border-radius:12px; border:2px solid var(–purple-light); font-family:‘Playfair Display’,serif; font-size:16px; outline:none; transition:border-color .2s; }
-input[type=text]:focus, input[type=password]:focus { border-color:var(–purple); }
+input[type=text], input[type=password] { width:100%; padding:13px 16px; border-radius:12px; border:2px solid #c8b0f0; font-family:‘Playfair Display’,serif; font-size:16px; outline:none; transition:border-color .2s; background:#fff; color:#2d0036; }
+input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
 
 /* BRACKET */
 .bracket-header { display:flex; align-items:center; gap:10px; margin:20px 0 10px; }
@@ -94,9 +96,6 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
 .lb-breakdown { margin-top:8px; font-size:12px; color:#888; }
 .lb-breakdown span { display:inline-block; margin-right:10px; }
 
-details summary { list-style:none; -webkit-appearance:none; }
-details summary::-webkit-details-marker { display:none; }
-
 /* TOAST */
 #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(–black); color:#fff; padding:12px 24px; border-radius:30px; font-size:15px; transition:transform .3s; z-index:999; white-space:nowrap; }
 #toast.show { transform:translateX(-50%) translateY(0); }
@@ -114,11 +113,12 @@ details summary::-webkit-details-marker { display:none; }
 .home-btn-results  { background-color:#9c6fde; color:#ffffff; border-color:#9c6fde; }
 .home-btn-board    { background-color:#ff6b9d; color:#ffffff; border-color:#ff6b9d; background-image:linear-gradient(135deg,#ff6b9d,#9c6fde); }
 .pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
-.pill { padding:8px 16px; border-radius:20px; border:2px solid; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:14px; transition:all .15s; }
+.pill { padding:8px 16px; border-radius:20px; border:2px solid #9c6fde; color:#4a148c; background:#e8d8ff; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:14px; transition:all .15s; font-weight:700; }
+.pill:hover { background:#9c6fde; color:#fff; }
 .score-guide { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
-.score-item { background:var(–purple-light); border-radius:10px; padding:10px 14px; }
-.score-pts { font-weight:800; font-size:20px; color:var(–purple); }
-.score-label { font-size:12px; color:#666; margin-top:2px; }
+.score-item { background:#e8d8ff; border-radius:10px; padding:10px 14px; }
+.score-pts { font-weight:800; font-size:20px; color:#4a148c; }
+.score-label { font-size:12px; color:#555; margin-top:2px; }
 </style>
 
 </head>
@@ -162,9 +162,13 @@ details summary::-webkit-details-marker { display:none; }
   <!-- PICKS -->
 
   <div id="view-picks" class="view">
-    <h2>🗳️ Submit Picks</h2>
+    <h2>🗳️ Your Picks</h2>
+    <div id="picks-locked-banner" style="display:none;background:#ffd0e8;border:2px solid #ff6b9d;border-radius:14px;padding:14px 18px;margin-bottom:20px">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;color:#c2185b;font-size:15px;margin-bottom:4px">🔒 Picks are locked</div>
+      <div style="font-size:13px;color:#555">The season started on ${PICKS_LOCK_DATE} — picks can no longer be changed. You can still view your selections below.</div>
+    </div>
     <div id="picks-name-section">
-      <p style="color:#888;font-size:14px;margin-bottom:12px">Enter your name to load or create your picks.</p>
+      <p style="color:#888;font-size:14px;margin-bottom:12px">Enter your name to view your picks.</p>
       <div style="display:flex;gap:10px;margin-bottom:20px">
         <input type="text" id="picks-name-input" placeholder="Your name…" onkeydown="if(event.key==='Enter')loadPlayerPicks()" />
         <button class="btn btn-purple" onclick="loadPlayerPicks()">Go</button>
@@ -254,17 +258,15 @@ details summary::-webkit-details-marker { display:none; }
     <div id="mvq-admin-open-actions" style="display:none;margin-bottom:12px">
       <button class="btn btn-gradient" style="width:100%" onclick="closeMvqVote()">🔒 Close Current Vote & Reveal Results</button>
     </div>
-    <details style="margin-top:8px">
-      <summary style="color:#bbb;font-size:13px;cursor:pointer;list-style:none;-webkit-appearance:none">⚙️ Manual override (tap to expand)</summary>
-      <div style="margin-top:12px">
-        <div style="font-size:13px;color:#888;margin-bottom:8px">Manually open a vote for a specific episode:</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <input type="text" id="mvq-new-episode" placeholder="e.g. Episode 3" style="flex:1;min-width:140px" />
-          <input type="text" id="mvq-new-deadline" placeholder="e.g. Mon May 19 at 11:59pm MT" style="flex:1;min-width:140px" />
-        </div>
-        <button class="btn btn-purple" style="width:100%" onclick="openMvqVote()">📬 Force Open Vote</button>
+    <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px;color:#aaa;border-color:#ddd;font-size:13px" onclick="document.getElementById('mvq-override-panel').style.display=document.getElementById('mvq-override-panel').style.display==='none'?'block':'none'">⚙️ Manual override</button>
+    <div id="mvq-override-panel" style="display:none;margin-top:12px;padding:14px;background:#f9f9f9;border-radius:12px">
+      <div style="font-size:13px;color:#888;margin-bottom:8px">Manually open a vote for a specific episode:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <input type="text" id="mvq-new-episode" placeholder="e.g. Episode 3" style="flex:1;min-width:140px" />
+        <input type="text" id="mvq-new-deadline" placeholder="e.g. Wed May 14 at 11:59pm MT" style="flex:1;min-width:140px" />
       </div>
-    </details>
+      <button class="btn btn-purple" style="width:100%" onclick="openMvqVote()">📬 Force Open Vote</button>
+    </div>
   </div>
 </div>
 ```
@@ -286,6 +288,10 @@ details summary::-webkit-details-marker { display:none; }
 // ── CONFIG — keep your existing Apps Script URL and password ──────────────────
 const API = "https://script.google.com/macros/s/AKfycbyhaF4vw2qmVcqDTvm2v4rJEdre328UxmizfklyRbgW0bxSQlXzWwe6ziltCnwE0PPXNg/exec";
 const ADMIN_PASSWORD = "rpdr2026";
+
+// Season started May 8 — picks are now locked
+const PICKS_LOCKED = true;
+const PICKS_LOCK_DATE = "May 8, 2026";
 
 // ── QUEENS (brackets match the show: Pink=Bracket1, Orange=Bracket2, Purple=Bracket3)
 // Brackets match the official show groupings (Eps 1-3, 4-6, 7-9)
@@ -361,6 +367,10 @@ function showView(id) {
   if (btn) btn.classList.add("active");
   if (id === "leaderboard") loadLeaderboard();
   if (id === "mvq") loadMvqView();
+  if (id === "picks") {
+    const banner = document.getElementById("picks-locked-banner");
+    if (banner) banner.style.display = PICKS_LOCKED ? "block" : "none";
+  }
 }
 
 function showResultsSection(sec, tabEl) {
@@ -873,9 +883,10 @@ async function loadLeaderboard() {
 // (Same window — players vote on both separately but have until the same Monday.)
 // From Ep3 onward, one episode per Friday.
 const MVQ_SCHEDULE = [
-  // { episode, openUTC (ISO), closeUTC (ISO) }
-  { episode:"Episode 1",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-12T05:59:00Z" },
-  { episode:"Episode 2",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-12T05:59:00Z" },
+  // Eps 1 & 2: double premiere May 8. Extended deadline to Wed May 13 11:59pm MT = Thu May 14 05:59 UTC
+  { episode:"Episode 1",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-14T05:59:00Z" },
+  { episode:"Episode 2",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-14T05:59:00Z" },
+  // Ep 3 onward: one per Friday, closes following Monday 11:59pm MT = Tue 05:59 UTC
   { episode:"Episode 3",  openUTC:"2026-05-15T23:00:00Z", closeUTC:"2026-05-19T05:59:00Z" },
   { episode:"Episode 4",  openUTC:"2026-05-22T23:00:00Z", closeUTC:"2026-05-26T05:59:00Z" },
   { episode:"Episode 5",  openUTC:"2026-05-29T23:00:00Z", closeUTC:"2026-06-02T05:59:00Z" },
