@@ -94,6 +94,9 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
 .lb-breakdown { margin-top:8px; font-size:12px; color:#888; }
 .lb-breakdown span { display:inline-block; margin-right:10px; }
 
+details summary { list-style:none; -webkit-appearance:none; }
+details summary::-webkit-details-marker { display:none; }
+
 /* TOAST */
 #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(–black); color:#fff; padding:12px 24px; border-radius:30px; font-size:15px; transition:transform .3s; z-index:999; white-space:nowrap; }
 #toast.show { transform:translateX(-50%) translateY(0); }
@@ -252,7 +255,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
       <button class="btn btn-gradient" style="width:100%" onclick="closeMvqVote()">🔒 Close Current Vote & Reveal Results</button>
     </div>
     <details style="margin-top:8px">
-      <summary style="color:#bbb;font-size:13px;cursor:pointer">⚙️ Manual override</summary>
+      <summary style="color:#bbb;font-size:13px;cursor:pointer;list-style:none;-webkit-appearance:none">⚙️ Manual override (tap to expand)</summary>
       <div style="margin-top:12px">
         <div style="font-size:13px;color:#888;margin-bottom:8px">Manually open a vote for a specific episode:</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
@@ -771,59 +774,75 @@ async function loadLeaderboard() {
 
     if (!players.length) { el.innerHTML = '<p class="empty">No picks submitted yet!</p>'; return; }
 
+    // Build bracket color lookup
+    const queenBracket = {};
+    const bracketBg = { Pink:"var(--pink-light)", Orange:"var(--orange-light)", Purple:"var(--purple-light)" };
+    const bracketText = { Pink:"var(--pink-dark)", Orange:"var(--orange-dark)", Purple:"var(--purple-dark)" };
+    const bracketDot = { Pink:"var(--pink)", Orange:"var(--orange)", Purple:"var(--purple)" };
+    Object.entries(QUEENS).forEach(([b, qs]) => qs.forEach(q => { queenBracket[q.id] = b; }));
+
+    // Assign ranks accounting for ties (1,1,3 not 1,1,2)
+    let rank = 1;
+    players.forEach((p, i) => {
+      if (i > 0 && players[i].score < players[i-1].score) rank = i + 1;
+      p.rank = rank;
+    });
+
+    const rankSuffix = r => r===1?"st":r===2?"nd":r===3?"rd":"th";
     const rankStyle = [
       "background:linear-gradient(135deg,#ffd700,#ff8c42);color:#fff",
       "background:#e0e0e0;color:#555",
       "background:#cd7f32;color:#fff",
     ];
 
-    el.innerHTML = players.map((p,i) => {
-      // Build per-queen breakdown
+    el.innerHTML = players.map((p, i) => {
+      const isTied = players.filter(x => x.score === p.score).length > 1;
+      const rankDisplay = `${p.rank}${rankSuffix(p.rank)}${isTied ? " 🤝" : ""}`;
+      const isTopScore = p.score > 0 && p.rank === 1;
+
+      // Per-queen breakdown with bracket color
       const queenRows = p.queens.map(id => {
         const q = ALL_QUEENS.find(x => x.id === id);
         if (!q) return null;
         const r = getR(id);
         const allEps = [...r.episodes, ...r.semiEpisodes];
         const qPts = calcPts(id);
-        // Build mini point reasons
         const reasons = [];
-        allEps.forEach((ep,idx) => {
+        allEps.forEach(ep => {
           if (ep === "win")  reasons.push("🏆 Win");
           if (ep === "top2") reasons.push("🥈 Top 2");
         });
-        if (r.advances)  reasons.push("⬆️ Semis");
-        if (r.finalist)  reasons.push("👑 Winner");
+        if (r.advances) reasons.push("⬆️ Semis");
+        if (r.finalist) reasons.push("👑 Winner");
         const badge = r.finalist?"👑":r.advances?"⬆️":allEps.includes("win")?"🏆":allEps.includes("top2")?"🥈":allEps.includes("elim")?"❌":"";
         const reasonStr = reasons.length ? reasons.join(", ") : "No points yet";
+        const bkt = queenBracket[id] || "Purple";
         return `<div style="display:flex;justify-content:space-between;align-items:center;
           padding:6px 10px;border-radius:10px;margin-bottom:4px;
-          background:${qPts>0?"var(--purple-light)":"#f9f9f9"}">
-          <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700">${badge} ${q.name.split(" ")[0]}</span>
+          background:${bracketBg[bkt]};border-left:3px solid ${bracketDot[bkt]}">
+          <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:${bracketText[bkt]}">${badge} ${q.name.split(" ")[0]}</span>
           <span style="display:flex;align-items:center;gap:8px">
             <span style="font-size:11px;color:#999">${reasonStr}</span>
-            <span style="font-weight:800;font-size:14px;color:${qPts>0?"var(--purple)":"#ccc"};min-width:28px;text-align:right">+${qPts}</span>
+            <span style="font-weight:800;font-size:14px;color:${qPts>0?bracketDot[bkt]:"#ccc"};min-width:28px;text-align:right">+${qPts}</span>
           </span>
         </div>`;
       }).filter(Boolean).join("");
 
-      // MVQ row
       const mvqRow = p.mvqPts > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;
-        padding:6px 10px;border-radius:10px;margin-bottom:4px;background:#fff3e0">
-        <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700">⭐ MVQ Votes</span>
+        padding:6px 10px;border-radius:10px;margin-bottom:4px;background:#fff3e0;border-left:3px solid var(--orange)">
+        <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:var(--orange-dark)">⭐ MVQ Votes</span>
         <span style="font-weight:800;font-size:14px;color:var(--orange-dark)">+${p.mvqPts}</span>
       </div>` : "";
 
-      const rankLabel = i===0?"1st":i===1?"2nd":i===2?"3rd":`${i+1}th`;
-      const isFirst = i === 0;
-
-      return `<div class="lb-row" style="${isFirst?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":"border:2px solid #f0eaff"}">
+      const rankIdx = p.rank - 1;
+      return `<div class="lb-row" style="${isTopScore?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":"border:2px solid #f0eaff"}">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;margin-bottom:10px">
-            <div class="lb-rank" style="${rankStyle[i]||"background:#f5f5f5;color:#aaa"}">${i===0?"👑":i+1}</div>
+            <div class="lb-rank" style="${rankStyle[rankIdx]||"background:#f5f5f5;color:#aaa"}">${p.rank===1?"👑":p.rank}</div>
             <div>
               <div style="display:flex;align-items:baseline;gap:8px">
                 <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">${p.player}</span>
-                <span style="font-size:12px;color:#bbb;font-weight:600">${rankLabel} place</span>
+                <span style="font-size:12px;color:#bbb;font-weight:600">${rankDisplay} place</span>
               </div>
               <div style="display:flex;align-items:baseline;gap:4px;margin-top:2px">
                 <span class="lb-score">${p.score}</span>
