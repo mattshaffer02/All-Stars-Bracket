@@ -115,10 +115,11 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
 <body>
 
 <nav>
-  <button class="active" onclick="showView('home')">👑 Home</button>
-  <button onclick="showView('picks')">🗳️ Picks</button>
-  <button onclick="showView('results')">📋 Results</button>
-  <button onclick="showView('leaderboard')">🏆 Board</button>
+  <button class="active" data-view="home" onclick="showView('home')">👑 Home</button>
+  <button data-view="picks" onclick="showView('picks')">🗳️ Picks</button>
+  <button data-view="results" onclick="showView('results')">📋 Results</button>
+  <button data-view="mvq" onclick="showView('mvq')">⭐ MVQ</button>
+  <button data-view="leaderboard" onclick="showView('leaderboard')">🏆 Board</button>
 </nav>
 
 <div class="container">
@@ -132,6 +133,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
       <p class="subtitle">Tournament of All Stars · Pick 'Em</p>
     </div>
     <button class="home-btn" style="background:#fff;color:var(--black)" onclick="showView('picks')">🗳️ Submit My Picks</button>
+    <button class="home-btn" style="background:var(--orange-light);color:var(--orange-dark)" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
     <button class="home-btn" style="background:var(--purple-light);color:var(--purple-dark)" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400">(admin)</span></button>
     <button class="home-btn" style="background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff" onclick="showView('leaderboard')">🏆 Leaderboard</button>
     <div class="card" style="margin-top:24px">
@@ -139,7 +141,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
       <div class="score-guide">
         <div class="score-item"><div class="score-pts">5</div><div class="score-label">Episode Win</div></div>
         <div class="score-item"><div class="score-pts">3</div><div class="score-label">Top 2 / Lip Sync</div></div>
-        <div class="score-item"><div class="score-pts">1</div><div class="score-label">Safe</div></div>
+        <div class="score-item"><div class="score-pts">2</div><div class="score-label">⭐ MVQ Vote Match</div></div>
         <div class="score-item"><div class="score-pts">10</div><div class="score-label">Advances to Semis</div></div>
         <div class="score-item" style="grid-column:1/-1"><div class="score-pts">25</div><div class="score-label">👑 Wins the Crown</div></div>
       </div>
@@ -194,6 +196,92 @@ input[type=text]:focus, input[type=password]:focus { border-color:var(–purple)
       <div id="results-finale" style="display:none"></div>
       <button class="btn btn-gradient" style="width:100%;margin-top:8px" onclick="saveResults()">💾 Save Results</button>
     </div>
+  </div>
+
+  <!-- MVQ -->
+
+  <div id="view-mvq" class="view">
+    <h2>⭐ MVQ Weekly Vote</h2>
+
+```
+<!-- HOW IT WORKS -->
+<div class="card" style="margin-bottom:20px;background:var(--purple-light);border:2px solid var(--purple)">
+  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:10px;color:var(--purple-dark)">📖 How It Works</div>
+  <div style="font-size:14px;color:#444;line-height:1.7">
+    <p style="margin-bottom:8px">After each episode, vote for the queen you think was the <strong>Most Valuable Queen</strong> — the one who impressed you most, even if she didn't win.</p>
+    <p style="margin-bottom:8px">🗓️ <strong>Voting closes the Monday after each episode airs.</strong> Episodes drop Fridays on Paramount+ — you have the weekend to watch and vote.</p>
+    <p style="margin-bottom:8px">⭐ <strong>+2 points</strong> if your MVQ pick matches the group consensus (the queen who gets the most votes). In a tie, all tied queens count — everyone who picked any of them gets +2.</p>
+    <p style="margin-bottom:8px">🔒 <strong>Results are hidden while voting is open.</strong> You'll see how many people have voted, but not who they picked — no bandwagon voting!</p>
+    <p>👤 <strong>To vote:</strong> select your name from the list below, then tap your pick. You can change your vote any time before the admin closes it.</p>
+  </div>
+</div>
+
+<!-- VOTE SECTION -->
+<div id="mvq-vote-section">
+  <div id="mvq-no-open" style="display:none">
+    <p class="empty">No vote is currently open.<br><span style="font-size:13px">Check back after the next episode!</span></p>
+  </div>
+  <div id="mvq-open-vote" style="display:none">
+    <div class="card" style="border:2px solid var(--orange);margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:17px" id="mvq-open-title"></div>
+        <span style="background:var(--orange);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">OPEN</span>
+      </div>
+      <div style="color:#888;font-size:13px" id="mvq-open-deadline"></div>
+      <div style="color:var(--purple);font-size:13px;font-weight:700;margin-top:4px" id="mvq-open-count"></div>
+    </div>
+
+    <!-- Player selector -->
+    <div id="mvq-player-select-section">
+      <p style="color:#888;font-size:14px;margin-bottom:10px">Select your name to vote:</p>
+      <div id="mvq-player-pills" class="pill-row"></div>
+    </div>
+
+    <!-- Queen picker (shown after name selected) -->
+    <div id="mvq-queen-picker" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px" id="mvq-voting-as"></div>
+        <button class="btn btn-outline btn-sm" onclick="resetMvqPlayer()">← Change</button>
+      </div>
+      <p style="color:#888;font-size:13px;margin-bottom:12px">Who was the MVP of this episode? Tap to select, then hit Submit.</p>
+      <div id="mvq-queen-list"></div>
+      <button class="btn btn-gradient" style="width:100%;margin-top:12px" onclick="submitMvqVote()" id="mvq-submit-btn" disabled>Submit Vote</button>
+      <div id="mvq-already-voted" style="display:none;text-align:center;margin-top:8px;color:var(--purple);font-size:13px;font-weight:700"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAST VOTES -->
+<div style="margin-top:28px">
+  <h2 style="font-size:20px;margin-bottom:12px">📜 Past Votes</h2>
+  <div id="mvq-past-votes"><div class="spinner"></div></div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div style="margin-top:28px;padding-top:20px;border-top:2px solid var(--purple-light)">
+  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:12px;color:#bbb">🔐 Admin</div>
+  <div id="mvq-admin-locked">
+    <div style="display:flex;gap:10px">
+      <input type="password" id="mvq-admin-pw" placeholder="Admin password…" onkeydown="if(event.key==='Enter')unlockMvqAdmin()" />
+      <button class="btn btn-purple" onclick="unlockMvqAdmin()">Unlock</button>
+    </div>
+  </div>
+  <div id="mvq-admin-panel" style="display:none">
+    <div style="margin-bottom:16px">
+      <div style="font-size:14px;color:#888;margin-bottom:8px">Open a new vote:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <input type="text" id="mvq-new-episode" placeholder="e.g. Episode 1" style="flex:1;min-width:140px" />
+        <input type="text" id="mvq-new-deadline" placeholder="Deadline e.g. Mon May 12" style="flex:1;min-width:140px" />
+      </div>
+      <button class="btn btn-purple" style="width:100%" onclick="openMvqVote()">📬 Open New Vote</button>
+    </div>
+    <div id="mvq-admin-open-actions" style="display:none">
+      <button class="btn btn-gradient" style="width:100%" onclick="closeMvqVote()">🔒 Close Current Vote & Reveal Results</button>
+    </div>
+  </div>
+</div>
+```
+
   </div>
 
   <!-- LEADERBOARD -->
@@ -259,7 +347,7 @@ const SEP = ["Ep 10","Ep 11"];
 const EP_OPTS = [
   { key:"win",  label:"🏆 Win",   pts:5, color:"#ff6b9d" },
   { key:"top2", label:"🥈 Top 2", pts:3, color:"#ff8c42" },
-  { key:"safe", label:"✅ Safe",  pts:1, color:"#4caf50" },
+  { key:"safe", label:"✅ Safe",  pts:0, color:"#4caf50" },
   { key:"elim", label:"❌ Elim",  pts:0, color:"#bbb"    },
 ];
 
@@ -282,11 +370,10 @@ function showView(id) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
   document.getElementById("view-" + id).classList.add("active");
-  const labels = { home:"👑 Home", picks:"🗳️ Picks", results:"📋 Results", leaderboard:"🏆 Board" };
-  document.querySelectorAll("nav button").forEach(b => {
-    if (b.textContent.trim() === labels[id]) b.classList.add("active");
-  });
+  const btn = document.querySelector(`nav button[data-view="${id}"]`);
+  if (btn) btn.classList.add("active");
   if (id === "leaderboard") loadLeaderboard();
+  if (id === "mvq") loadMvqView();
 }
 
 function showResultsSection(sec, tabEl) {
@@ -448,26 +535,48 @@ function unlockAdmin() {
   loadAndRenderResults();
 }
 
-async function loadAndRenderResults() {
-  const data = await apiFetch({ action:"getResults" });
-  // Migrate old flat format to new episode-based format if needed
-  const raw = data.results || {};
-  results = {};
+// Shared helper: parse raw results from Apps Script into the episode-based format.
+// Handles three cases:
+//   1. New format already (has episodes array) — use as-is
+//   2. Old flat boolean format (win/top2/safe/elim) — migrate into ep slot 0
+//   3. The whole value is a JSON string (Apps Script sometimes stringifies) — parse first
+function parseResults(raw) {
+  const out = {};
+  // Sometimes Apps Script returns the entire results as a single JSON string
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); } catch { return out; }
+  }
   Object.keys(raw).forEach(qid => {
-    const r = raw[qid];
-    // If it's already new format (has episodes array), use as-is
+    let r = raw[qid];
+    // If the individual queen entry is a string, parse it
+    if (typeof r === "string") {
+      try { r = JSON.parse(r); } catch { return; }
+    }
+    if (!r || typeof r !== "object") return;
     if (Array.isArray(r.episodes)) {
-      results[qid] = r;
+      // New format — normalise nulls (JSON doesn't distinguish null vs missing)
+      out[qid] = {
+        episodes:     r.episodes.map(v => v || null),
+        semiEpisodes: (r.semiEpisodes || [null, null]).map(v => v || null),
+        advances:     !!r.advances,
+        finalist:     !!r.finalist,
+      };
     } else {
-      // Old flat format — migrate: put old win/top2/safe/elim in ep slot 0 for backwards compat
-      results[qid] = {
+      // Old flat boolean format — put result in ep slot 0
+      out[qid] = {
         episodes: [r.win?"win":r.top2?"top2":r.safe?"safe":r.elim?"elim":null, null, null],
         semiEpisodes: [null, null],
-        advances: r.advances || false,
-        finalist: r.finalist || false,
+        advances: !!r.advances,
+        finalist: !!r.finalist,
       };
     }
   });
+  return out;
+}
+
+async function loadAndRenderResults() {
+  const data = await apiFetch({ action:"getResults" });
+  results = parseResults(data.results || {});
   renderResultsBrackets();
   renderResultsSemis();
   renderResultsFinale();
@@ -647,48 +756,335 @@ async function loadLeaderboard() {
   const el = document.getElementById("leaderboard-content");
   el.innerHTML = '<div class="spinner"></div>';
 
-  const [playersData, resultsData] = await Promise.all([
-    apiFetch({ action:"getAll" }),
-    apiFetch({ action:"getResults" }),
-  ]);
+  try {
+    const [playersData, resultsData, mvqData] = await Promise.all([
+      apiFetch({ action:"getAll" }),
+      apiFetch({ action:"getResults" }),
+      apiFetch({ action:"getMvq" }),
+    ]);
 
-  // Load results into state (with migration + string parsing)
-  results = parseResults(resultsData.results || {});
+    results = parseResults(resultsData.results || {});
 
-  const players = (playersData.players || [])
-    .map(p => ({ ...p, score: p.queens.reduce((s, qid) => s + calcPts(qid), 0) }))
-    .sort((a,b) => b.score - a.score);
+    // Tally MVQ bonus points per player from closed past votes
+    const mvqBonus = {};
+    (mvqData.past || []).forEach(vote => {
+      const votes    = vote.votes   || {};
+      const winners  = vote.winners || [];
+      Object.entries(votes).forEach(([player, qid]) => {
+        if (winners.includes(qid)) {
+          mvqBonus[player] = (mvqBonus[player] || 0) + 2;
+        }
+      });
+    });
 
-  if (!players.length) { el.innerHTML = '<p class="empty">No picks submitted yet!</p>'; return; }
+    const players = (playersData.players || [])
+      .map(p => ({
+        ...p,
+        score: p.queens.reduce((s, qid) => s + calcPts(qid), 0) + (mvqBonus[p.player] || 0),
+        mvqPts: mvqBonus[p.player] || 0,
+      }))
+      .sort((a,b) => b.score - a.score);
 
-  const rankStyle = [
-    "background:linear-gradient(135deg,#ffd700,#ff8c42);color:#fff",
-    "background:#e0e0e0;color:#555",
-    "background:#cd7f32;color:#fff",
-  ];
+    if (!players.length) { el.innerHTML = '<p class="empty">No picks submitted yet!</p>'; return; }
 
-  el.innerHTML = players.map((p,i) => {
-    const queenTags = p.queens.map(id => {
-      const q = ALL_QUEENS.find(x => x.id === id);
-      if (!q) return null;
-      const r = getR(id);
-      const allEps = [...r.episodes, ...r.semiEpisodes];
-      const badge = r.finalist?"👑":r.advances?"⬆️":allEps.includes("win")?"🏆":allEps.includes("top2")?"🥈":allEps.includes("safe")?"✅":allEps.includes("elim")?"❌":"";
-      const pts = calcPts(id);
-      return `<span class="lb-queen-tag">${badge} ${q.name.split(" ")[0]}${pts>0?` +${pts}`:""}</span>`;
-    }).filter(Boolean).join("");
+    const rankStyle = [
+      "background:linear-gradient(135deg,#ffd700,#ff8c42);color:#fff",
+      "background:#e0e0e0;color:#555",
+      "background:#cd7f32;color:#fff",
+    ];
 
-    return `<div class="lb-row" style="${i===0?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":""}">
-      <div style="display:flex;align-items:center;flex:1;min-width:0">
-        <div class="lb-rank" style="${rankStyle[i]||"background:#f5f5f5;color:#aaa"}">${i===0?"👑":i+1}</div>
-        <div style="min-width:0">
-          <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">${p.player}</div>
-          <div class="lb-queens">${queenTags||'<span style="color:#bbb;font-size:12px">No picks yet</span>'}</div>
+    el.innerHTML = players.map((p,i) => {
+      const queenTags = p.queens.map(id => {
+        const q = ALL_QUEENS.find(x => x.id === id);
+        if (!q) return null;
+        const r = getR(id);
+        const allEps = [...r.episodes, ...r.semiEpisodes];
+        const badge = r.finalist?"👑":r.advances?"⬆️":allEps.includes("win")?"🏆":allEps.includes("top2")?"🥈":allEps.includes("elim")?"❌":"";
+        const pts = calcPts(id);
+        return `<span class="lb-queen-tag">${badge} ${q.name.split(" ")[0]}${pts>0?` +${pts}`:""}</span>`;
+      }).filter(Boolean).join("");
+
+      // Rank label: 1st / 2nd / 3rd / etc.
+      const rankLabel = i===0?"1st":i===1?"2nd":i===2?"3rd":`${i+1}th`;
+
+      return `<div class="lb-row" style="${i===0?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":""}">
+        <div style="display:flex;align-items:center;flex:1;min-width:0">
+          <div class="lb-rank" style="${rankStyle[i]||"background:#f5f5f5;color:#aaa"}">${i===0?"👑":i+1}</div>
+          <div style="min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">${p.player}</span>
+              <span style="font-size:12px;color:#bbb;font-weight:600">${rankLabel} place</span>
+            </div>
+            <div class="lb-queens">${queenTags||'<span style="color:#bbb;font-size:12px">No picks yet</span>'}</div>
+          </div>
         </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <div class="lb-score">${p.score}</div>
+          <div style="font-size:11px;color:#bbb;text-align:center;margin-top:-4px">pts</div>
+        </div>
+      </div>`;
+    }).join("");
+
+    // Add scoring key at the bottom
+    el.innerHTML += `<p style="color:#ccc;font-size:12px;text-align:center;margin-top:20px">Win +5 · Top 2 +3 · Advances +10 · Wins Crown +25</p>`;
+
+  } catch(e) {
+    el.innerHTML = `<p class="empty">⚠️ Couldn't load leaderboard.<br><span style="font-size:13px">Check your connection and try refreshing.</span></p>`;
+    console.error("Leaderboard error:", e);
+  }
+}
+
+// ── MVQ ───────────────────────────────────────────────────────────────────────
+let mvqAdminUnlocked = false;
+let mvqCurrentPlayer = null;
+let mvqSelectedQueen = null;
+let mvqOpenVote = null;      // { episode, deadline, votes:{playerName:queenId}, closed:bool }
+let mvqPastVotes = [];
+
+async function loadMvqView() {
+  try {
+    const data = await apiFetch({ action:"getMvq" });
+    mvqOpenVote  = data.open  || null;
+    mvqPastVotes = data.past  || [];
+    renderMvqOpen();
+    renderMvqPast();
+    if (mvqAdminUnlocked) renderMvqAdminActions();
+  } catch(e) {
+    console.error("MVQ load error:", e);
+  }
+}
+
+function renderMvqOpen() {
+  const noOpen  = document.getElementById("mvq-no-open");
+  const openDiv = document.getElementById("mvq-open-vote");
+
+  if (!mvqOpenVote) {
+    noOpen.style.display  = "block";
+    openDiv.style.display = "none";
+    return;
+  }
+  noOpen.style.display  = "none";
+  openDiv.style.display = "block";
+
+  document.getElementById("mvq-open-title").textContent    = `⭐ ${mvqOpenVote.episode} MVQ Vote`;
+  document.getElementById("mvq-open-deadline").textContent = `🗓️ Voting closes: ${mvqOpenVote.deadline}`;
+
+  const votes     = mvqOpenVote.votes || {};
+  const voteCount = Object.keys(votes).length;
+  const total     = allPlayers.length || "?";
+  document.getElementById("mvq-open-count").textContent = `${voteCount} of ${total} players have voted`;
+
+  // Populate player pills
+  const pills = document.getElementById("mvq-player-pills");
+  pills.innerHTML = (allPlayers.length ? allPlayers : []).map(p =>
+    `<div class="pill" style="border-color:var(--orange);color:var(--orange-dark)"
+      onclick="selectMvqPlayer('${p.player}')">${p.player}</div>`
+  ).join("") || '<p style="color:#bbb;font-size:13px">No players found. Add players in the Picks tab first.</p>';
+}
+
+function selectMvqPlayer(name) {
+  mvqCurrentPlayer = name;
+  mvqSelectedQueen = null;
+  document.getElementById("mvq-player-select-section").style.display = "none";
+  document.getElementById("mvq-queen-picker").style.display = "block";
+  document.getElementById("mvq-voting-as").textContent = `Voting as: ${name}`;
+
+  // Check if already voted
+  const votes    = mvqOpenVote?.votes || {};
+  const existing = votes[name];
+
+  // Render queen list — all queens currently in their active bracket
+  // Show all queens for simplicity so you can vote for any queen
+  const list = document.getElementById("mvq-queen-list");
+  list.innerHTML = ALL_QUEENS.map(q => {
+    const sel = existing === q.id;
+    return `<div onclick="selectMvqQueen('${q.id}')" id="mvq-qrow-${q.id}"
+      style="display:flex;justify-content:space-between;align-items:center;
+        background:${sel?"var(--orange-light)":"#fff"};
+        border:2px solid ${sel?"var(--orange)":"#eee"};
+        border-radius:12px;padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px">${q.emoji} ${q.name}</div>
+        <div style="color:#999;font-size:12px">${q.season}</div>
       </div>
-      <div class="lb-score">${p.score}</div>
+      <div id="mvq-qcheck-${q.id}" style="width:28px;height:28px;border-radius:50%;
+        background:${sel?"var(--orange)":"transparent"};border:2px solid ${sel?"var(--orange)":"#ddd"};
+        display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px">
+        ${sel?"✓":""}
+      </div>
     </div>`;
   }).join("");
+
+  if (existing) {
+    mvqSelectedQueen = existing;
+    document.getElementById("mvq-submit-btn").disabled = false;
+    document.getElementById("mvq-already-voted").style.display = "block";
+    document.getElementById("mvq-already-voted").textContent   = "✏️ You've already voted — tap a queen to change your pick.";
+  } else {
+    document.getElementById("mvq-already-voted").style.display = "none";
+    document.getElementById("mvq-submit-btn").disabled = true;
+  }
+}
+
+function selectMvqQueen(qid) {
+  // Deselect previous
+  if (mvqSelectedQueen) {
+    const prev = document.getElementById(`mvq-qrow-${mvqSelectedQueen}`);
+    const prevChk = document.getElementById(`mvq-qcheck-${mvqSelectedQueen}`);
+    if (prev) { prev.style.background="transparent"; prev.style.borderColor="#eee"; }
+    if (prevChk) { prevChk.style.background="transparent"; prevChk.style.borderColor="#ddd"; prevChk.textContent=""; }
+  }
+  mvqSelectedQueen = qid;
+  const row = document.getElementById(`mvq-qrow-${qid}`);
+  const chk = document.getElementById(`mvq-qcheck-${qid}`);
+  if (row) { row.style.background="var(--orange-light)"; row.style.borderColor="var(--orange)"; }
+  if (chk) { chk.style.background="var(--orange)"; chk.style.borderColor="var(--orange)"; chk.textContent="✓"; }
+  document.getElementById("mvq-submit-btn").disabled = false;
+}
+
+function resetMvqPlayer() {
+  mvqCurrentPlayer = null;
+  mvqSelectedQueen = null;
+  document.getElementById("mvq-player-select-section").style.display = "block";
+  document.getElementById("mvq-queen-picker").style.display = "none";
+}
+
+async function submitMvqVote() {
+  if (!mvqCurrentPlayer || !mvqSelectedQueen) return;
+  const btn = document.getElementById("mvq-submit-btn");
+  btn.textContent = "Saving…"; btn.disabled = true;
+  try {
+    const res = await apiPost({ action:"saveMvqVote", episode:mvqOpenVote.episode, player:mvqCurrentPlayer, queen:mvqSelectedQueen });
+    if (res.success) {
+      // Update local state
+      if (!mvqOpenVote.votes) mvqOpenVote.votes = {};
+      mvqOpenVote.votes[mvqCurrentPlayer] = mvqSelectedQueen;
+      const total = allPlayers.length || "?";
+      document.getElementById("mvq-open-count").textContent = `${Object.keys(mvqOpenVote.votes).length} of ${total} players have voted`;
+      document.getElementById("mvq-already-voted").style.display = "block";
+      document.getElementById("mvq-already-voted").textContent = "✅ Vote saved!";
+      toast("✅ MVQ vote saved!");
+    } else {
+      toast("❌ Error saving vote. Try again.");
+    }
+  } catch(e) {
+    toast("❌ Error saving vote. Try again.");
+  }
+  btn.textContent = "Submit Vote"; btn.disabled = false;
+}
+
+function renderMvqPast() {
+  const el = document.getElementById("mvq-past-votes");
+  if (!mvqPastVotes.length) {
+    el.innerHTML = '<p style="color:#bbb;font-size:14px;text-align:center;padding:20px 0">No closed votes yet.</p>';
+    return;
+  }
+  el.innerHTML = mvqPastVotes.map(vote => {
+    const votes   = vote.votes || {};
+    const tally   = {};
+    Object.values(votes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
+    const maxVotes = Math.max(...Object.values(tally), 0);
+    const winners  = Object.keys(tally).filter(qid => tally[qid] === maxVotes);
+
+    const tallyHtml = Object.entries(tally)
+      .sort((a,b) => b[1]-a[1])
+      .map(([qid, count]) => {
+        const q    = ALL_QUEENS.find(x => x.id === qid);
+        const isW  = winners.includes(qid);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;
+          padding:8px 12px;border-radius:10px;margin-bottom:6px;
+          background:${isW?"var(--orange-light)":"#f9f9f9"};
+          border:2px solid ${isW?"var(--orange)":"transparent"}">
+          <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px">
+            ${isW?"⭐ ":""}${q?q.emoji+" "+q.name:qid}
+          </span>
+          <span style="font-weight:700;color:${isW?"var(--orange-dark)":"#999"}">${count} vote${count!==1?"s":""}</span>
+        </div>`;
+      }).join("");
+
+    // Show who voted for whom
+    const voterHtml = Object.entries(votes).map(([player, qid]) => {
+      const q = ALL_QUEENS.find(x => x.id === qid);
+      const isW = winners.includes(qid);
+      return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f5f0ff">
+        <span style="color:#666">${player}</span>
+        <span style="font-weight:700;color:${isW?"var(--orange-dark)":"#999"}">${q?q.emoji+" "+q.name.split(" ")[0]:qid}${isW?" ⭐":""}</span>
+      </div>`;
+    }).join("");
+
+    const winnerNames = winners.map(qid => { const q=ALL_QUEENS.find(x=>x.id===qid); return q?q.name:qid; }).join(" & ");
+
+    return `<div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px">⭐ ${vote.episode}</div>
+        <span style="background:#e8f5e9;color:#388e3c;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">CLOSED</span>
+      </div>
+      <div style="background:var(--orange-light);border-radius:10px;padding:10px 14px;margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:2px">GROUP MVQ</div>
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:var(--orange-dark)">⭐ ${winnerNames}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">Players who picked ${winnerNames} earned +2 pts</div>
+      </div>
+      <div style="margin-bottom:12px">${tallyHtml}</div>
+      <details>
+        <summary style="color:var(--purple);font-size:13px;cursor:pointer;font-weight:700;margin-bottom:8px">👁 See who voted for whom</summary>
+        <div style="margin-top:8px">${voterHtml}</div>
+      </details>
+    </div>`;
+  }).join("");
+}
+
+function unlockMvqAdmin() {
+  const pw = document.getElementById("mvq-admin-pw").value;
+  if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
+  mvqAdminUnlocked = true;
+  document.getElementById("mvq-admin-locked").style.display = "none";
+  document.getElementById("mvq-admin-panel").style.display  = "block";
+  renderMvqAdminActions();
+}
+
+function renderMvqAdminActions() {
+  const el = document.getElementById("mvq-admin-open-actions");
+  el.style.display = mvqOpenVote ? "block" : "none";
+}
+
+async function openMvqVote() {
+  const episode  = document.getElementById("mvq-new-episode").value.trim();
+  const deadline = document.getElementById("mvq-new-deadline").value.trim();
+  if (!episode)  { toast("Enter an episode name"); return; }
+  if (!deadline) { toast("Enter a deadline"); return; }
+  const res = await apiPost({ action:"openMvqVote", episode, deadline });
+  if (res.success) {
+    toast(`✅ Vote opened for ${episode}!`);
+    document.getElementById("mvq-new-episode").value  = "";
+    document.getElementById("mvq-new-deadline").value = "";
+    await loadMvqView();
+  } else {
+    toast("❌ Error opening vote.");
+  }
+}
+
+async function closeMvqVote() {
+  if (!mvqOpenVote) return;
+  if (!confirm(`Close the vote for "${mvqOpenVote.episode}" and reveal results?`)) return;
+
+  // Calculate winners and award points
+  const votes   = mvqOpenVote.votes || {};
+  const tally   = {};
+  Object.values(votes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
+  const maxVotes = Math.max(...Object.values(tally), 0);
+  const winners  = maxVotes > 0 ? Object.keys(tally).filter(qid => tally[qid] === maxVotes) : [];
+  // Players who voted for a winning queen
+  const bonusPlayers = Object.entries(votes)
+    .filter(([, qid]) => winners.includes(qid))
+    .map(([player]) => player);
+
+  const res = await apiPost({ action:"closeMvqVote", episode:mvqOpenVote.episode, winners:JSON.stringify(winners), bonusPlayers:JSON.stringify(bonusPlayers) });
+  if (res.success) {
+    toast(`✅ Vote closed! ${bonusPlayers.length} player(s) earned +2 pts.`);
+    await loadMvqView();
+  } else {
+    toast("❌ Error closing vote.");
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
