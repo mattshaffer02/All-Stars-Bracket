@@ -1,420 +1,648 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>All Stars 11 · Pick 'Em</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: linear-gradient(160deg,#fff5fa 0%,#f3ecff 50%,#fff8e1 100%); min-height: 100vh; font-family: Georgia, serif; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>All Stars 11 · Pick 'Em</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --pink:        #ff6b9d;
+    --pink-light:  #ffe0ee;
+    --pink-dark:   #c2185b;
+    --orange:      #ff8c42;
+    --orange-light:#fff0e6;
+    --orange-dark: #e65100;
+    --purple:      #9c6fde;
+    --purple-light:#f3ecff;
+    --purple-dark: #4a148c;
+    --black:       #2d0036;
+    --grey:        #f5f5f5;
+  }
+
+  body {
+    font-family: Georgia, serif;
+    background: linear-gradient(160deg, #fff5fa 0%, #f3ecff 50%, #fff8e1 100%);
+    min-height: 100vh;
+    color: var(--black);
+  }
+
+  .container { max-width: 600px; margin: 0 auto; padding: 0 16px 60px; }
+
+  /* ── NAV ── */
+  nav {
+    display: flex; gap: 0;
+    background: #fff;
+    border-bottom: 2px solid var(--purple-light);
+    position: sticky; top: 0; z-index: 100;
+    overflow-x: auto;
+  }
+  nav button {
+    flex: 1; min-width: 80px;
+    padding: 14px 8px;
+    border: none; background: none; cursor: pointer;
+    font-family: 'Playfair Display', serif; font-size: 13px;
+    color: #999; border-bottom: 3px solid transparent;
+    transition: all .2s; white-space: nowrap;
+  }
+  nav button.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 700; }
+  nav button:hover:not(.active) { color: var(--black); background: var(--purple-light); }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding-top: 24px; }
+  .view.active { display: block; }
+
+  /* ── TYPOGRAPHY ── */
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(28px,7vw,48px); color: var(--black); letter-spacing: -1px; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--black); margin-bottom: 16px; }
+  .subtitle { font-family: 'Playfair Display', serif; font-style: italic; color: var(--purple); font-size: 18px; margin: 4px 0 28px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: #fff; border-radius: 18px;
+    padding: 18px 20px; margin-bottom: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 13px 22px; border-radius: 14px; border: none;
+    cursor: pointer; font-family: 'Playfair Display', serif;
+    font-size: 16px; font-weight: 700; transition: transform .15s;
+  }
+  .btn:hover { transform: scale(1.03); }
+  .btn-purple { background: var(--purple); color: #fff; }
+  .btn-outline { background: #fff; color: var(--purple); border: 2px solid var(--purple); }
+  .btn-gradient { background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; }
+  .btn-sm { padding: 8px 16px; font-size: 14px; border-radius: 10px; }
+
+  /* ── INPUT ── */
+  input[type=text], input[type=password] {
+    width: 100%; padding: 13px 16px; border-radius: 12px;
+    border: 2px solid var(--purple-light); font-family: 'Playfair Display', serif;
+    font-size: 16px; outline: none; transition: border-color .2s;
+  }
+  input[type=text]:focus, input[type=password]:focus { border-color: var(--purple); }
+
+  /* ── BRACKET SECTION ── */
+  .bracket-header {
+    display: flex; align-items: center; gap: 10px;
+    margin: 20px 0 10px;
+  }
+  .bracket-dot { width: 14px; height: 14px; border-radius: 50%; }
+  .bracket-label { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; }
+
+  /* ── QUEEN ROW ── */
+  .queen-row {
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 12px; padding: 12px 16px; margin-bottom: 8px;
+    cursor: pointer; border: 2px solid transparent; transition: all .15s;
+  }
+  .queen-row:hover { filter: brightness(0.97); }
+  .queen-name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 15px; }
+  .queen-season { color: #999; font-size: 12px; margin-top: 2px; }
+  .check-circle {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid #ddd; display: flex; align-items: center;
+    justify-content: center; font-size: 15px; flex-shrink: 0;
+    transition: all .15s;
+  }
+
+  /* ── RESULT TAGS ── */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .tag {
+    padding: 6px 12px; border-radius: 20px; border: 2px solid;
+    cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s;
+  }
+
+  /* ── LEADERBOARD ── */
+  .lb-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fff; border-radius: 18px; padding: 16px 20px;
+    margin-bottom: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  .lb-rank {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; margin-right: 14px; flex-shrink: 0;
+  }
+  .lb-score {
+    font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 800;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .lb-queens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .lb-queen-tag {
+    background: var(--purple-light); border-radius: 20px;
+    padding: 4px 10px; font-size: 12px; color: var(--purple-dark);
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--black); color: #fff; padding: 12px 24px;
+    border-radius: 30px; font-size: 15px; transition: transform .3s;
+    z-index: 999; white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── LOADING ── */
+  .spinner {
+    border: 3px solid var(--purple-light); border-top-color: var(--purple);
+    border-radius: 50%; width: 32px; height: 32px;
+    animation: spin .7s linear infinite; margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { color: #bbb; text-align: center; padding: 40px 0; font-size: 15px; }
+
+  /* ── HOME BUTTONS ── */
+  .home-btn {
+    display: block; width: 100%; padding: 18px 24px;
+    border-radius: 18px; border: none; cursor: pointer;
+    font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700;
+    margin-bottom: 14px; text-align: left;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: transform .15s;
+  }
+  .home-btn:hover { transform: scale(1.02); }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .pill {
+    padding: 8px 16px; border-radius: 20px; border: 2px solid;
+    cursor: pointer; font-family: 'Playfair Display', serif; font-size: 14px;
+    transition: all .15s;
+  }
+
+  .score-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .score-item { background: var(--purple-light); border-radius: 10px; padding: 10px 14px; }
+  .score-pts { font-weight: 800; font-size: 20px; color: var(--purple); }
+  .score-label { font-size: 12px; color: #666; margin-top: 2px; }
+</style>
 </head>
 <body>
-  <div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect } = React;
+<nav>
+  <button class="active" onclick="showView('home')">👑 Home</button>
+  <button onclick="showView('picks')">🗳️ Picks</button>
+  <button onclick="showView('results')">📋 Results</button>
+  <button onclick="showView('leaderboard')">🏆 Board</button>
+</nav>
 
-    const QUEENS = {
-      pink: [
-        { id: "akeria",  name: "A'Keria C. Davenport",  season: "S11, AS6", emoji: "👑" },
-        { id: "april",   name: "April Carrión",          season: "S6",       emoji: "🌸" },
-        { id: "crystal", name: "Crystal Methyd",         season: "S12",      emoji: "💎" },
-        { id: "jasmine", name: "Jasmine Kennedie",       season: "S14",      emoji: "🌺" },
-        { id: "kennedy", name: "Kennedy Davenport",      season: "S7, AS3",  emoji: "⚡" },
-        { id: "morgan",  name: "Morgan McMichaels",      season: "S2, AS3",  emoji: "🔥" },
-      ],
-      orange: [
-        { id: "aura",     name: "Aura Mayari",           season: "S15", emoji: "✨" },
-        { id: "dawn",     name: "Dawn",                  season: "S16", emoji: "🌅" },
-        { id: "hershii",  name: "Hershii LiqCour-Jeté",  season: "S16", emoji: "💫" },
-        { id: "joey",     name: "Joey Jay",              season: "S13", emoji: "🎉" },
-        { id: "lucky",    name: "Lucky Starzzz",         season: "S17", emoji: "⭐" },
-        { id: "vivacious",name: "Vivacious",             season: "S6",  emoji: "🦋" },
-      ],
-      purple: [
-        { id: "morphine", name: "Morphine Love Dion",     season: "S16",      emoji: "💜" },
-        { id: "mystique", name: "Mystique Summers",       season: "S2",       emoji: "🔮" },
-        { id: "salina",   name: "Salina EsTitties",       season: "S15",      emoji: "🍑" },
-        { id: "sam",      name: "Sam Star",               season: "S17",      emoji: "🌟" },
-        { id: "shuga",    name: "Shuga Cain",             season: "S11",      emoji: "🍬" },
-        { id: "silky",    name: "Silky Nutmeg Ganache",   season: "S11, AS6", emoji: "✨" },
-      ],
-    };
+<div class="container">
 
-    const ALL_QUEENS = [...QUEENS.pink, ...QUEENS.orange, ...QUEENS.purple];
+  <!-- ══ HOME ══ -->
+  <div id="view-home" class="view active">
+    <div style="text-align:center;padding:32px 0 24px">
+      <div style="font-size:60px;margin-bottom:8px">👑</div>
+      <h1>All Stars 11</h1>
+      <p class="subtitle">Tournament of All Stars · Pick 'Em</p>
+    </div>
+    <button class="home-btn" style="background:#fff;color:var(--black)" onclick="showView('picks')">🗳️ Submit My Picks</button>
+    <button class="home-btn" style="background:var(--purple-light);color:var(--purple-dark)" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400">(admin)</span></button>
+    <button class="home-btn" style="background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff" onclick="showView('leaderboard')">🏆 Leaderboard</button>
 
-    const BC = {
-      pink:   { bg: "#ff6b9d", light: "#ffe0ee", text: "#880e4f" },
-      orange: { bg: "#ff8c42", light: "#fff0e6", text: "#bf360c" },
-      purple: { bg: "#9c6fde", light: "#f3ecff", text: "#311b92" },
-    };
+    <div class="card" style="margin-top:24px">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;margin-bottom:12px">📊 Scoring Guide</div>
+      <div class="score-guide">
+        <div class="score-item"><div class="score-pts">5</div><div class="score-label">Episode Win</div></div>
+        <div class="score-item"><div class="score-pts">3</div><div class="score-label">Top 2 / Lip Sync</div></div>
+        <div class="score-item"><div class="score-pts">1</div><div class="score-label">Safe</div></div>
+        <div class="score-item"><div class="score-pts">10</div><div class="score-label">Advances to Semis</div></div>
+        <div class="score-item" style="grid-column:1/-1"><div class="score-pts">25</div><div class="score-label">👑 Wins the Crown</div></div>
+      </div>
+    </div>
+    <p style="text-align:center;color:#bbb;font-size:12px;margin-top:20px">Premieres May 8, 2026 · Paramount+</p>
+  </div>
 
-    const EP_OPTS = [
-      { key: "win",  label: "🏆 Win",   pts: 5, color: "#ff6b9d" },
-      { key: "top2", label: "🥈 Top 2", pts: 3, color: "#ff8c42" },
-      { key: "safe", label: "✅ Safe",  pts: 1, color: "#4caf50" },
-      { key: "elim", label: "❌ Elim",  pts: 0, color: "#bbb"    },
-    ];
+  <!-- ══ PICKS ══ -->
+  <div id="view-picks" class="view">
+    <h2>🗳️ Submit Picks</h2>
 
-    const BEP = { pink:["Ep 1","Ep 2","Ep 3"], orange:["Ep 4","Ep 5","Ep 6"], purple:["Ep 7","Ep 8","Ep 9"] };
-    const SEP = ["Ep 10","Ep 11"];
+    <div id="picks-name-section">
+      <p style="color:#888;font-size:14px;margin-bottom:12px">Enter your name to load or create your picks.</p>
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <input type="text" id="picks-name-input" placeholder="Your name…" onkeydown="if(event.key==='Enter')loadPlayerPicks()" />
+        <button class="btn btn-purple" onclick="loadPlayerPicks()">Go</button>
+      </div>
 
-    const KEY = "as11_bracket_data";
-    const VER = 2;
+      <div id="existing-players-section" style="display:none">
+        <p style="color:#888;font-size:13px;margin-bottom:8px">Or pick an existing player:</p>
+        <div id="existing-players-pills" class="pill-row"></div>
+      </div>
+    </div>
 
-    function migrate(raw) {
-      if (!raw) return null;
-      let d;
-      try { d = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return null; }
-      if (!d.version || d.version < 2) {
-        const res = d.results || {};
-        Object.keys(res).forEach(qid => {
-          const r = res[qid];
-          if (!r.episodes) r.episodes = [null,null,null];
-          while (r.episodes.length < 3) r.episodes.push(null);
-          if (!r.semiEpisodes) r.semiEpisodes = [null,null];
-          if (r.advances  === undefined) r.advances  = false;
-          if (r.finalist  === undefined) r.finalist  = false;
-          delete r.win; delete r.top2; delete r.safe; delete r.elim;
-        });
-        d.version = VER;
-      }
-      if (!d.players) d.players = [];
-      if (!d.picks)   d.picks   = {};
-      if (!d.results) d.results = {};
-      return d;
-    }
+    <div id="picks-form" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700" id="picks-player-label"></div>
+        <button class="btn btn-outline btn-sm" onclick="resetPicksPlayer()">← Change</button>
+      </div>
+      <p style="color:#888;font-size:13px;margin-bottom:4px">Tap queens you think will go far. Changes save automatically.</p>
+      <div id="picks-brackets"></div>
+      <div style="text-align:center;margin-top:8px;color:#bbb;font-size:13px" id="picks-count"></div>
+      <button class="btn btn-gradient" style="width:100%;margin-top:16px" onclick="savePicks()">💾 Save Picks</button>
+    </div>
+  </div>
 
-    function load() {
-      try { const r = localStorage.getItem(KEY); return r ? migrate(r) : null; } catch { return null; }
-    }
-    function save(d) {
-      try { localStorage.setItem(KEY, JSON.stringify(d)); } catch {}
-    }
+  <!-- ══ RESULTS ══ -->
+  <div id="view-results" class="view">
+    <h2>📋 Episode Results</h2>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <input type="password" id="admin-pw" placeholder="Admin password…" onkeydown="if(event.key==='Enter')unlockAdmin()" />
+      <button class="btn btn-purple" onclick="unlockAdmin()">Unlock</button>
+    </div>
+    <div id="results-locked" style="color:#bbb;font-size:14px;text-align:center;padding:30px 0">🔒 Enter the admin password to record results.</div>
+    <div id="results-form" style="display:none">
+      <div id="results-brackets"></div>
+      <button class="btn btn-gradient" style="width:100%;margin-top:8px" onclick="saveResults()">💾 Save Results</button>
+    </div>
+  </div>
 
-    const blank = () => ({ episodes:[null,null,null], semiEpisodes:[null,null], advances:false, finalist:false });
+  <!-- ══ LEADERBOARD ══ -->
+  <div id="view-leaderboard" class="view">
+    <h2>🏆 Leaderboard</h2>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:16px" onclick="loadLeaderboard()">↻ Refresh</button>
+    <div id="leaderboard-content"><div class="spinner"></div></div>
+  </div>
 
-    function getR(res, qid) {
-      const r = res[qid];
-      if (!r) return blank();
-      return { episodes:r.episodes||[null,null,null], semiEpisodes:r.semiEpisodes||[null,null], advances:r.advances||false, finalist:r.finalist||false };
-    }
+</div>
 
-    function pts(r) {
-      let p = 0;
-      [...(r.episodes||[]),...(r.semiEpisodes||[])].forEach(ep => { const o=EP_OPTS.find(x=>x.key===ep); if(o) p+=o.pts; });
-      if (r.advances) p += 10;
-      if (r.finalist) p += 25;
-      return p;
-    }
+<div id="toast"></div>
 
-    const INIT = { version:VER, players:[], picks:{}, results:{} };
+<script>
+const API = "https://script.google.com/macros/s/AKfycbyhaF4vw2qmVcqDTvm2v4rJEdre328UxmizfklyRbgW0bxSQlXzWwe6ziltCnwE0PPXNg/exec";
+const ADMIN_PASSWORD = "rpdr2026"; // change this to whatever you like
 
-    // Shared styles
-    const H2 = { fontFamily:"'Playfair Display',serif", fontSize:26, color:"#2d0036", marginTop:0, marginBottom:20 };
-    const BTN = (c) => ({ padding:"12px 20px", borderRadius:12, border:"none", background:c, color:"#fff", cursor:"pointer", fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700 });
+const QUEENS = {
+  Orange: [
+    { id:"akeria",   name:"A'Keria C. Davenport", season:"S11, AS6" },
+    { id:"dawn",     name:"Dawn",                  season:"S16" },
+    { id:"lucky",    name:"Lucky Starzzz",         season:"S17" },
+    { id:"morgan",   name:"Morgan McMichaels",     season:"S2, AS3" },
+    { id:"morphine", name:"Morphine Love Dion",    season:"S16" },
+    { id:"mystique", name:"Mystique Summers",      season:"S2" },
+  ],
+  Pink: [
+    { id:"april",     name:"April Carrión",        season:"S6" },
+    { id:"aura",      name:"Aura Mayari",          season:"S15" },
+    { id:"crystal",   name:"Crystal Methyd",       season:"S12" },
+    { id:"salina",    name:"Salina EsTitties",     season:"S15" },
+    { id:"silky",     name:"Silky Nutmeg Ganache", season:"S11, AS6" },
+    { id:"vivacious", name:"Vivacious",            season:"S6" },
+  ],
+  Purple: [
+    { id:"hershii",  name:"Hershii LiqCour-Jeté",  season:"S16" },
+    { id:"jasmine",  name:"Jasmine Kennedie",       season:"S14" },
+    { id:"joey",     name:"Joey Jay",               season:"S13" },
+    { id:"kennedy",  name:"Kennedy Davenport",      season:"S7, AS3" },
+    { id:"sam",      name:"Sam Star",               season:"S17" },
+    { id:"shuga",    name:"Shuga Cain",             season:"S11" },
+  ],
+};
 
-    function App() {
-      const [st, setSt] = useState(() => load() || INIT);
-      const [view, setView] = useState("home");
-      const [newP, setNewP] = useState("");
+const ALL_QUEENS = [...QUEENS.Pink, ...QUEENS.Orange, ...QUEENS.Purple];
 
-      useEffect(() => { save(st); }, [st]);
+const BCOLORS = {
+  Orange: { bg:"var(--orange)", light:"var(--orange-light)", dark:"var(--orange-dark)", text:"var(--orange-dark)" },
+  Pink:   { bg:"var(--pink)",   light:"var(--pink-light)",   dark:"var(--pink-dark)",   text:"var(--pink-dark)" },
+  Purple: { bg:"var(--purple)", light:"var(--purple-light)", dark:"var(--purple-dark)", text:"var(--purple-dark)" },
+};
 
-      const addPlayer = () => {
-        const n = newP.trim();
-        if (!n || st.players.includes(n)) return;
-        setSt(s => ({ ...s, players:[...s.players,n], picks:{...s.picks,[n]:{}} }));
-        setNewP("");
-      };
+// ── State ──
+let allPlayers   = [];   // [{ player, queens:[id,...] }]
+let currentPlayer = null;
+let currentPicks  = {};  // { queenId: bool }
+let results       = {};  // { queenId: { win,top2,safe,elim } }
+let advancers     = [];
+let finalist      = null;
+let adminUnlocked = false;
 
-      const togglePick = (player, qid) => {
-        setSt(s => { const c=s.picks[player]||{}; return {...s, picks:{...s.picks,[player]:{...c,[qid]:!c[qid]}}}; });
-      };
+// ── Helpers ──
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2800);
+}
 
-      const setEp = (qid, idx, val, semi=false) => {
-        setSt(s => {
-          const r=getR(s.results,qid), k=semi?"semiEpisodes":"episodes", a=[...r[k]];
-          a[idx] = a[idx]===val ? null : val;
-          return {...s, results:{...s.results,[qid]:{...r,[k]:a}}};
-        });
-      };
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  document.getElementById("view-" + id).classList.add("active");
+  const labels = { home:"👑 Home", picks:"🗳️ Picks", results:"📋 Results", leaderboard:"🏆 Board" };
+  document.querySelectorAll("nav button").forEach(b => {
+    if (b.textContent.trim() === labels[id]) b.classList.add("active");
+  });
+  if (id === "leaderboard") loadLeaderboard();
+}
 
-      const setFlag = (qid, flag) => {
-        setSt(s => {
-          const r=getR(s.results,qid);
-          if (flag==="finalist") {
-            const nr={};
-            Object.keys(s.results).forEach(id => { nr[id]={...getR(s.results,id),finalist:false}; });
-            nr[qid]={...r,finalist:!r.finalist};
-            return {...s,results:nr};
-          }
-          return {...s,results:{...s.results,[qid]:{...r,[flag]:!r[flag]}}};
-        });
-      };
+async function apiFetch(params) {
+  const url = API + "?" + new URLSearchParams(params);
+  const r = await fetch(url);
+  return r.json();
+}
 
-      const score = (p) => {
-        const pk=st.picks[p]||{};
-        return Object.keys(pk).reduce((s,qid)=>pk[qid]?s+pts(getR(st.results,qid)):s,0);
-      };
+async function apiPost(body) {
+  const params = new URLSearchParams({ action: body.action });
+  Object.entries(body).forEach(([k,v]) => {
+    if (k !== "action") params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
+  });
+  const r = await fetch(API + "?" + params.toString());
+  return r.json();
+}
 
-      const advancers = ALL_QUEENS.filter(q=>getR(st.results,q.id).advances);
-      const board = [...st.players].sort((a,b)=>score(b)-score(a));
-      const pickedBy = (qid) => st.players.filter(p=>st.picks[p]?.[qid]);
+// ── PICKS ──
+async function loadPlayerPicks() {
+  const name = document.getElementById("picks-name-input").value.trim();
+  if (!name) { toast("Enter your name first!"); return; }
+  currentPlayer = name;
 
-      const BackBtn = () => (
-        <button onClick={()=>setView("home")} style={{background:"none",border:"none",cursor:"pointer",color:"#9c6fde",fontFamily:"'Playfair Display',serif",fontSize:16,marginBottom:12,padding:0,display:"flex",alignItems:"center",gap:6}}>← Back</button>
-      );
+  // Load all players if not yet done
+  if (!allPlayers.length) {
+    const data = await apiFetch({ action:"getAll" });
+    allPlayers = data.players || [];
+  }
+  const existing = allPlayers.find(p => p.player.toLowerCase() === name.toLowerCase());
+  currentPicks = {};
+  if (existing) existing.queens.forEach(id => currentPicks[id] = true);
 
-      const EpGrid = ({qid,arr,labels,semi}) => (
-        <div style={{display:"grid",gridTemplateColumns:`repeat(${labels.length},1fr)`,gap:6,marginBottom:10}}>
-          {labels.map((lbl,i) => {
-            const cur=arr[i];
-            return (
-              <div key={i} style={{display:"flex",flexDirection:"column",gap:3}}>
-                <div style={{color:"#ccc",fontSize:10,textAlign:"center",fontWeight:700,letterSpacing:".5px"}}>{lbl}</div>
-                {EP_OPTS.map(o => {
-                  const on=cur===o.key;
-                  return (
-                    <button key={o.key} onClick={()=>setEp(qid,i,o.key,semi)}
-                      style={{padding:"4px 3px",borderRadius:7,border:"2px solid",borderColor:on?o.color:"#eee",background:on?o.color:"transparent",color:on?"#fff":"#bbb",cursor:"pointer",fontSize:11,fontWeight:700,textAlign:"center",transition:"all .1s"}}>
-                      {o.label}{on?` +${o.pts}`:""}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
+  renderPicksForm();
+}
+
+function resetPicksPlayer() {
+  currentPlayer = null;
+  currentPicks  = {};
+  document.getElementById("picks-form").style.display = "none";
+  document.getElementById("picks-name-section").style.display = "block";
+  document.getElementById("picks-name-input").value = "";
+}
+
+async function renderPicksExistingPlayers() {
+  if (!allPlayers.length) {
+    const data = await apiFetch({ action:"getAll" });
+    allPlayers = data.players || [];
+  }
+  const sec = document.getElementById("existing-players-section");
+  const pills = document.getElementById("existing-players-pills");
+  if (!allPlayers.length) { sec.style.display = "none"; return; }
+  sec.style.display = "block";
+  pills.innerHTML = allPlayers.map(p =>
+    `<div class="pill" style="border-color:var(--purple);color:var(--purple)" onclick="selectExistingPlayer('${p.player}')">${p.player}</div>`
+  ).join("");
+}
+
+function selectExistingPlayer(name) {
+  document.getElementById("picks-name-input").value = name;
+  loadPlayerPicks();
+}
+
+function renderPicksForm() {
+  document.getElementById("picks-name-section").style.display = "none";
+  document.getElementById("picks-form").style.display = "block";
+  document.getElementById("picks-player-label").textContent = "Picks for " + currentPlayer;
+
+  const container = document.getElementById("picks-brackets");
+  container.innerHTML = "";
+
+  Object.entries(QUEENS).forEach(([bracket, queens]) => {
+    const bc = BCOLORS[bracket];
+    let html = `<div class="bracket-header">
+      <div class="bracket-dot" style="background:${bc.bg}"></div>
+      <span class="bracket-label" style="color:${bc.text}">${bracket} Bracket</span>
+    </div>`;
+    queens.forEach(q => {
+      const picked = !!currentPicks[q.id];
+      html += `<div class="queen-row" id="qrow-${q.id}"
+        style="background:${picked?bc.light:'#fff'};border-color:${picked?bc.bg:'#eee'}"
+        onclick="togglePick('${q.id}','${bracket}')">
+        <div>
+          <div class="queen-name">${q.name}</div>
+          <div class="queen-season">${q.season}</div>
         </div>
-      );
-
-      // ── HOME ──
-      if (view==="home") return (
-        <div style={{textAlign:"center",padding:"40px 24px"}}>
-          <div style={{fontSize:64,marginBottom:8}}>👑</div>
-          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(28px,7vw,52px)",color:"#2d0036",margin:0,letterSpacing:"-1px"}}>All Stars 11</h1>
-          <p style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",color:"#9c6fde",fontSize:20,margin:"4px 0 32px"}}>Tournament of All Stars · Pick 'Em</p>
-          <div style={{display:"grid",gap:14,maxWidth:340,margin:"0 auto"}}>
-            {[["👥 Manage Players","setup"],["🗳️ Submit Picks","picks"],["📋 Enter Results","results"],["🏆 Leaderboard","leaderboard"]].map(([lbl,v])=>(
-              <button key={v} onClick={()=>setView(v)}
-                style={{padding:"16px 24px",borderRadius:16,border:"none",cursor:"pointer",background:v==="leaderboard"?"linear-gradient(135deg,#ff6b9d,#9c6fde)":"#fff",color:v==="leaderboard"?"#fff":"#2d0036",boxShadow:"0 4px 20px rgba(0,0,0,0.12)",fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,transition:"transform .15s"}}
-                onMouseOver={e=>e.currentTarget.style.transform="scale(1.03)"}
-                onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>{lbl}</button>
-            ))}
-          </div>
-          <p style={{marginTop:40,color:"#bbb",fontSize:13}}>12 episodes · Premieres May 8, 2026 · Paramount+</p>
+        <div class="check-circle" id="qcheck-${q.id}"
+          style="background:${picked?bc.bg:'transparent'};border-color:${picked?bc.bg:'#ddd'};color:#fff">
+          ${picked?"✓":""}
         </div>
-      );
+      </div>`;
+    });
+    container.innerHTML += html;
+  });
+  updatePicksCount();
+}
 
-      // ── PLAYERS ──
-      if (view==="setup") return (
-        <div style={{padding:"24px 20px",maxWidth:500,margin:"0 auto"}}>
-          <BackBtn/>
-          <h2 style={H2}>👥 Players</h2>
-          <div style={{display:"flex",gap:10,marginBottom:20}}>
-            <input value={newP} onChange={e=>setNewP(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addPlayer()} placeholder="Add player name…"
-              style={{flex:1,padding:"12px 16px",borderRadius:12,border:"2px solid #e0d0ff",fontFamily:"'Playfair Display',serif",fontSize:16,outline:"none"}}/>
-            <button onClick={addPlayer} style={BTN("#9c6fde")}>Add</button>
-          </div>
-          {st.players.length===0 && <p style={{color:"#bbb",textAlign:"center"}}>No players yet.</p>}
-          {st.players.map(p=>(
-            <div key={p} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",borderRadius:14,padding:"14px 18px",marginBottom:10,boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}>
-              <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#2d0036"}}>{p}</span>
-              <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                <span style={{color:"#9c6fde",fontWeight:700}}>{score(p)} pts</span>
-                <button onClick={()=>setSt(s=>{const pl=s.players.filter(x=>x!==p);const pk={...s.picks};delete pk[p];return{...s,players:pl,picks:pk};})} style={{background:"none",border:"none",cursor:"pointer",color:"#ccc",fontSize:18}}>✕</button>
-              </div>
-            </div>
-          ))}
+function togglePick(id, bracket) {
+  currentPicks[id] = !currentPicks[id];
+  const bc = BCOLORS[bracket];
+  const picked = currentPicks[id];
+  const row = document.getElementById("qrow-" + id);
+  const chk = document.getElementById("qcheck-" + id);
+  row.style.background = picked ? bc.light : "#fff";
+  row.style.borderColor = picked ? bc.bg : "#eee";
+  chk.style.background  = picked ? bc.bg : "transparent";
+  chk.style.borderColor = picked ? bc.bg : "#ddd";
+  chk.textContent = picked ? "✓" : "";
+  updatePicksCount();
+}
+
+function updatePicksCount() {
+  const n = Object.values(currentPicks).filter(Boolean).length;
+  document.getElementById("picks-count").textContent = n + " queen" + (n===1?"":"s") + " selected";
+}
+
+async function savePicks() {
+  if (!currentPlayer) return;
+  const queens = Object.keys(currentPicks).filter(id => currentPicks[id]);
+  const res = await apiPost({ action:"savePicks", player:currentPlayer, queens });
+  if (res.success) {
+    toast("✅ Picks saved for " + currentPlayer + "!");
+    // update local cache
+    const idx = allPlayers.findIndex(p => p.player === currentPlayer);
+    if (idx >= 0) allPlayers[idx].queens = queens;
+    else allPlayers.push({ player:currentPlayer, queens });
+  } else {
+    toast("❌ Error saving. Try again.");
+  }
+}
+
+// ── RESULTS ──
+function unlockAdmin() {
+  const pw = document.getElementById("admin-pw").value;
+  if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
+  adminUnlocked = true;
+  document.getElementById("results-locked").style.display = "none";
+  document.getElementById("results-form").style.display = "block";
+  loadAndRenderResults();
+}
+
+async function loadAndRenderResults() {
+  const data = await apiFetch({ action:"getResults" });
+  results   = data.results   || {};
+  advancers = data.advancers || [];
+  finalist  = data.finalist  || null;
+  renderResultsForm();
+}
+
+function renderResultsForm() {
+  const container = document.getElementById("results-brackets");
+  container.innerHTML = "";
+
+  Object.entries(QUEENS).forEach(([bracket, queens]) => {
+    const bc = BCOLORS[bracket];
+    let html = `<div class="bracket-header">
+      <div class="bracket-dot" style="background:${bc.bg}"></div>
+      <span class="bracket-label" style="color:${bc.text}">${bracket} Bracket</span>
+    </div>`;
+    queens.forEach(q => {
+      const r = results[q.id] || {};
+      const adv = advancers.includes(q.id);
+      const win = finalist === q.id;
+      html += `<div class="card">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;margin-bottom:8px">${q.name}</div>
+        <div class="tag-row">
+          ${tag(q.id,"win",  r.win,  "🏆 Win (5pts)",    "#e53935","#ffebee")}
+          ${tag(q.id,"top2", r.top2, "🥈 Top 2 (3pts)",  "#f57c00","#fff3e0")}
+          ${tag(q.id,"safe", r.safe, "✅ Safe (1pt)",     "#388e3c","#e8f5e9")}
+          ${tag(q.id,"elim", r.elim, "❌ Elim",           "#9e9e9e","#f5f5f5")}
+          ${advTag(q.id, adv)}
+          ${winTag(q.id, win)}
         </div>
-      );
+      </div>`;
+    });
+    container.innerHTML += html;
+  });
+}
 
-      // ── PICKS ──
-      if (view==="picks") {
-        const PicksInner = () => {
-          const [player, setPlayer] = useState(st.players[0]||null);
-          return (
-            <div style={{padding:"24px 20px",maxWidth:560,margin:"0 auto"}}>
-              <BackBtn/>
-              <h2 style={H2}>🗳️ Submit Picks</h2>
-              {st.players.length===0 ? <p style={{color:"#bbb",textAlign:"center"}}>Add players first.</p> : <>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
-                  {st.players.map(p=>(
-                    <button key={p} onClick={()=>setPlayer(p)} style={{padding:"8px 16px",borderRadius:20,border:"2px solid",borderColor:player===p?"#9c6fde":"#e0d0ff",background:player===p?"#9c6fde":"#fff",color:player===p?"#fff":"#9c6fde",cursor:"pointer",fontFamily:"'Playfair Display',serif",fontSize:15}}>{p}</button>
-                  ))}
-                </div>
-                {player && <>
-                  <p style={{color:"#888",fontSize:13,marginBottom:16}}>Pick queens you think will slay. Win +5 · Top2 +3 · Safe +1 · Advances +10 · Wins Crown +25</p>
-                  {["pink","orange","purple"].map(b=>(
-                    <div key={b} style={{marginBottom:24}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                        <div style={{width:14,height:14,borderRadius:"50%",background:BC[b].bg}}/>
-                        <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:18,color:BC[b].text,textTransform:"capitalize"}}>{b} Bracket</span>
-                      </div>
-                      {QUEENS[b].map(q=>{
-                        const picked=st.picks[player]?.[q.id];
-                        return (
-                          <div key={q.id} onClick={()=>togglePick(player,q.id)}
-                            style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:picked?BC[b].light:"#fff",border:`2px solid ${picked?BC[b].bg:"#eee"}`,borderRadius:12,padding:"12px 16px",marginBottom:8,cursor:"pointer",transition:"all .15s"}}>
-                            <div>
-                              <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,color:"#2d0036",fontSize:16}}>{q.emoji} {q.name}</div>
-                              <div style={{color:"#999",fontSize:13}}>{q.season}</div>
-                            </div>
-                            <div style={{width:28,height:28,borderRadius:"50%",background:picked?BC[b].bg:"transparent",border:`2px solid ${picked?BC[b].bg:"#ddd"}`,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:16}}>{picked?"✓":""}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                  <p style={{color:"#bbb",textAlign:"center",fontSize:13}}>{Object.values(st.picks[player]||{}).filter(Boolean).length} queens selected</p>
-                </>}
-              </>}
-            </div>
-          );
-        };
-        return <PicksInner/>;
-      }
+function tag(qid, field, active, label, activeColor, activeBg) {
+  return `<div class="tag" id="tag-${qid}-${field}"
+    style="border-color:${active?activeColor:"#eee"};background:${active?activeBg:"transparent"};color:${active?activeColor:"#bbb"}"
+    onclick="toggleTag('${qid}','${field}','${activeColor}','${activeBg}')">${label}</div>`;
+}
 
-      // ── RESULTS ──
-      if (view==="results") {
-        const ResultsInner = () => {
-          const [sec, setSec] = useState("brackets");
-          return (
-            <div style={{padding:"24px 20px",maxWidth:620,margin:"0 auto"}}>
-              <BackBtn/>
-              <h2 style={H2}>📋 Record Results</h2>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:24}}>
-                {[["brackets","🪩 Brackets","Eps 1–9"],["semis","⚡ Semis","Eps 10–11"],["finale","👑 Finale","Ep 12"]].map(([k,lbl,sub])=>(
-                  <button key={k} onClick={()=>setSec(k)} style={{padding:"10px 6px",borderRadius:12,border:"2px solid",borderColor:sec===k?"#9c6fde":"#eee",background:sec===k?"#9c6fde":"#fff",color:sec===k?"#fff":"#999",cursor:"pointer",fontWeight:700,lineHeight:1.3}}>
-                    <div style={{fontSize:14}}>{lbl}</div><div style={{fontSize:11,opacity:.8}}>{sub}</div>
-                  </button>
-                ))}
-              </div>
+function advTag(qid, active) {
+  const c = "var(--purple)", bg = "var(--purple-light)";
+  return `<div class="tag" id="tag-${qid}-adv"
+    style="border-color:${active?c:"#eee"};background:${active?bg:"transparent"};color:${active?c:"#bbb"}"
+    onclick="toggleAdv('${qid}')">⬆️ Advances (10pts)</div>`;
+}
 
-              {sec==="brackets" && ["pink","orange","purple"].map(b=>(
-                <div key={b} style={{marginBottom:32}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-                    <div style={{width:14,height:14,borderRadius:"50%",background:BC[b].bg}}/>
-                    <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:18,color:BC[b].text,textTransform:"capitalize"}}>{b} Bracket</span>
-                    <span style={{color:"#bbb",fontSize:13}}>({b==="pink"?"Eps 1–3":b==="orange"?"Eps 4–6":"Eps 7–9"})</span>
-                  </div>
-                  {QUEENS[b].map(q=>{
-                    const r=getR(st.results,q.id);
-                    return (
-                      <div key={q.id} style={{background:"#fff",borderRadius:14,padding:"12px 14px",marginBottom:10,boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                          <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,color:"#2d0036",fontSize:15}}>{q.emoji} {q.name}</div>
-                          <span style={{fontWeight:700,color:"#9c6fde",fontSize:13}}>{pts(r)} pts</span>
-                        </div>
-                        <EpGrid qid={q.id} arr={r.episodes} labels={BEP[b]} semi={false}/>
-                        <div style={{borderTop:"1px solid #f5f0ff",paddingTop:10}}>
-                          <button onClick={()=>setFlag(q.id,"advances")} style={{padding:"5px 14px",borderRadius:20,border:"2px solid",borderColor:r.advances?"#9c6fde":"#eee",background:r.advances?"#9c6fde":"transparent",color:r.advances?"#fff":"#aaa",cursor:"pointer",fontSize:12,fontWeight:700}}>
-                            ⬆️ Advances to Semis (+10)
-                          </button>
-                        </div>
-                        {pickedBy(q.id).length>0 && <p style={{color:"#ccc",fontSize:12,marginTop:8,marginBottom:0}}>Picked by: {pickedBy(q.id).join(", ")}</p>}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+function winTag(qid, active) {
+  const c = "#f9a825", bg = "#fff9c4";
+  return `<div class="tag" id="tag-${qid}-finalist"
+    style="border-color:${active?c:"#eee"};background:${active?bg:"transparent"};color:${active?c:"#bbb"}"
+    onclick="toggleFinalist('${qid}')">👑 WINNER (25pts)</div>`;
+}
 
-              {sec==="semis" && <div>
-                <p style={{color:"#888",fontSize:13,marginBottom:20}}>Top 2 from each bracket (6 queens) compete in Eps 10 & 11. Mark advancing queens in the Brackets tab first.</p>
-                {advancers.length===0 && <p style={{color:"#ccc",textAlign:"center",marginTop:40}}>No queens marked as advancing yet.</p>}
-                {advancers.map(q=>{
-                  const r=getR(st.results,q.id);
-                  const b=Object.keys(QUEENS).find(x=>QUEENS[x].some(y=>y.id===q.id));
-                  return (
-                    <div key={q.id} style={{background:"#fff",borderRadius:14,padding:"12px 14px",marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,0.07)",borderLeft:`4px solid ${BC[b].bg}`}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                        <div>
-                          <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,color:"#2d0036",fontSize:15}}>{q.emoji} {q.name}</div>
-                          <div style={{color:BC[b].text,fontSize:12,fontWeight:700,textTransform:"capitalize"}}>{b} bracket</div>
-                        </div>
-                        <span style={{fontWeight:700,color:"#9c6fde",fontSize:13}}>{pts(r)} pts total</span>
-                      </div>
-                      <EpGrid qid={q.id} arr={r.semiEpisodes} labels={SEP} semi={true}/>
-                      {pickedBy(q.id).length>0 && <p style={{color:"#ccc",fontSize:12,marginTop:4,marginBottom:0}}>Picked by: {pickedBy(q.id).join(", ")}</p>}
-                    </div>
-                  );
-                })}
-              </div>}
+function toggleTag(qid, field, activeColor, activeBg) {
+  if (!results[qid]) results[qid] = {};
+  results[qid][field] = !results[qid][field];
+  const el = document.getElementById(`tag-${qid}-${field}`);
+  const active = results[qid][field];
+  el.style.borderColor = active ? activeColor : "#eee";
+  el.style.background  = active ? activeBg : "transparent";
+  el.style.color       = active ? activeColor : "#bbb";
+}
 
-              {sec==="finale" && <div>
-                <p style={{color:"#888",fontSize:13,marginBottom:20}}>Ep 12 — Lip Sync Smackdown for the Crown. Tap the winner to award +25 pts.</p>
-                {advancers.length===0 && <p style={{color:"#ccc",textAlign:"center"}}>Mark advancing queens in Brackets tab first.</p>}
-                {advancers.map(q=>{
-                  const r=getR(st.results,q.id);
-                  const b=Object.keys(QUEENS).find(x=>QUEENS[x].some(y=>y.id===q.id));
-                  return (
-                    <div key={q.id} onClick={()=>setFlag(q.id,"finalist")}
-                      style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:r.finalist?"#fffbe6":"#fff",border:`2px solid ${r.finalist?"#ffd700":"#eee"}`,borderRadius:14,padding:"16px 18px",marginBottom:10,cursor:"pointer",boxShadow:r.finalist?"0 4px 20px rgba(255,215,0,0.3)":"0 2px 12px rgba(0,0,0,0.07)",transition:"all .15s"}}>
-                      <div>
-                        <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,color:"#2d0036",fontSize:17}}>{r.finalist?"👑 ":""}{q.emoji} {q.name}</div>
-                        <div style={{color:BC[b].text,fontSize:12,fontWeight:700,textTransform:"capitalize"}}>{b} bracket · {pts(r)} pts so far</div>
-                        {pickedBy(q.id).length>0 && <div style={{color:"#bbb",fontSize:12,marginTop:3}}>Picked by: {pickedBy(q.id).join(", ")}</div>}
-                      </div>
-                      <div style={{fontSize:36}}>{r.finalist?"🏆":"○"}</div>
-                    </div>
-                  );
-                })}
-                {advancers.length>0 && !advancers.some(q=>getR(st.results,q.id).finalist) && <p style={{color:"#ccc",textAlign:"center",fontSize:13,marginTop:20}}>Tap a queen to crown the winner.</p>}
-              </div>}
-            </div>
-          );
-        };
-        return <ResultsInner/>;
-      }
+function toggleAdv(qid) {
+  const idx = advancers.indexOf(qid);
+  if (idx >= 0) advancers.splice(idx, 1); else advancers.push(qid);
+  const el = document.getElementById(`tag-${qid}-adv`);
+  const active = advancers.includes(qid);
+  el.style.borderColor = active ? "var(--purple)" : "#eee";
+  el.style.background  = active ? "var(--purple-light)" : "transparent";
+  el.style.color       = active ? "var(--purple)" : "#bbb";
+}
 
-      // ── LEADERBOARD ──
-      if (view==="leaderboard") return (
-        <div style={{padding:"24px 20px",maxWidth:500,margin:"0 auto"}}>
-          <BackBtn/>
-          <h2 style={H2}>🏆 Leaderboard</h2>
-          {board.length===0 ? <p style={{color:"#bbb",textAlign:"center"}}>No players yet.</p> : <>
-            {board.map((p,i)=>{
-              const sc=score(p);
-              const picked=ALL_QUEENS.filter(q=>st.picks[p]?.[q.id]);
-              return (
-                <div key={p} style={{background:"#fff",borderRadius:18,padding:"18px 20px",marginBottom:14,boxShadow:i===0?"0 4px 30px rgba(156,111,222,0.3)":"0 2px 12px rgba(0,0,0,0.08)",border:i===0?"2px solid #9c6fde":"2px solid transparent"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                    <div style={{display:"flex",alignItems:"center",gap:12}}>
-                      <div style={{width:40,height:40,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:i===0?"linear-gradient(135deg,#ffd700,#ff8c42)":i===1?"#e0e0e0":i===2?"#cd7f32":"#f5f5f5",fontSize:20,fontWeight:800,color:i<3?"#fff":"#aaa"}}>{i===0?"👑":i+1}</div>
-                      <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,color:"#2d0036"}}>{p}</span>
-                    </div>
-                    <span style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:800,background:"linear-gradient(135deg,#ff6b9d,#9c6fde)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{sc}</span>
-                  </div>
-                  {picked.length>0 && (
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                      {picked.map(q=>{
-                        const r=getR(st.results,q.id);
-                        const ae=[...r.episodes,...r.semiEpisodes];
-                        const badge=r.finalist?"👑":r.advances?"⬆️":ae.includes("win")?"🏆":ae.includes("top2")?"🥈":ae.includes("safe")?"✅":ae.includes("elim")?"❌":"";
-                        const p2=pts(r);
-                        return <span key={q.id} style={{background:"#f5f0ff",borderRadius:20,padding:"4px 10px",fontSize:13,color:"#6a3d9a"}}>{badge} {q.name.split(" ")[0]}{p2>0?` +${p2}`:""}</span>;
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            <p style={{color:"#ccc",fontSize:12,textAlign:"center",marginTop:20}}>Win +5 · Top2 +3 · Safe +1 · Advances +10 · Wins Crown +25</p>
-          </>}
+function toggleFinalist(qid) {
+  const prev = finalist;
+  finalist = finalist === qid ? null : qid;
+  // reset old
+  if (prev) {
+    const el = document.getElementById(`tag-${prev}-finalist`);
+    if (el) { el.style.borderColor="#eee"; el.style.background="transparent"; el.style.color="#bbb"; }
+  }
+  if (finalist) {
+    const el = document.getElementById(`tag-${finalist}-finalist`);
+    if (el) { el.style.borderColor="#f9a825"; el.style.background="#fff9c4"; el.style.color="#f9a825"; }
+  }
+}
+
+async function saveResults() {
+  const res = await apiPost({ action:"saveResults", results, advancers, finalist });
+  if (res.success) toast("✅ Results saved!");
+  else toast("❌ Error saving. Try again.");
+}
+
+// ── LEADERBOARD ──
+function getScore(queens) {
+  let score = 0;
+  queens.forEach(id => {
+    const r = results[id] || {};
+    if (r.win)  score += 5;
+    if (r.top2) score += 3;
+    if (r.safe) score += 1;
+    if (advancers.includes(id)) score += 10;
+    if (finalist === id) score += 25;
+  });
+  return score;
+}
+
+async function loadLeaderboard() {
+  const el = document.getElementById("leaderboard-content");
+  el.innerHTML = '<div class="spinner"></div>';
+
+  const [playersData, resultsData] = await Promise.all([
+    apiFetch({ action:"getAll" }),
+    apiFetch({ action:"getResults" }),
+  ]);
+
+  results   = resultsData.results   || {};
+  advancers = resultsData.advancers || [];
+  finalist  = resultsData.finalist  || null;
+
+  const players = (playersData.players || [])
+    .map(p => ({ ...p, score: getScore(p.queens) }))
+    .sort((a,b) => b.score - a.score);
+
+  if (!players.length) {
+    el.innerHTML = '<p class="empty">No picks submitted yet!</p>';
+    return;
+  }
+
+  const rankStyle = [
+    "background:linear-gradient(135deg,#ffd700,#ff8c42);color:#fff",
+    "background:#e0e0e0;color:#555",
+    "background:#cd7f32;color:#fff",
+  ];
+
+  el.innerHTML = players.map((p,i) => {
+    const queenNames = p.queens.map(id => {
+      const q = ALL_QUEENS.find(x => x.id === id);
+      if (!q) return null;
+      const isWinner = finalist === id;
+      const isAdv = advancers.includes(id);
+      const r = results[id] || {};
+      const badge = isWinner?"👑":isAdv?"⬆️":r.win?"🏆":r.top2?"🥈":r.safe?"✅":r.elim?"❌":"";
+      return `<span class="lb-queen-tag">${badge} ${q.name.split(" ")[0]}</span>`;
+    }).filter(Boolean).join("");
+
+    return `<div class="lb-row" style="${i===0?"box-shadow:0 4px 30px rgba(156,111,222,0.25);border:2px solid var(--purple)":""}">
+      <div style="display:flex;align-items:center;flex:1;min-width:0">
+        <div class="lb-rank" style="${rankStyle[i]||"background:#f5f5f5;color:#aaa"}">${i===0?"👑":i+1}</div>
+        <div style="min-width:0">
+          <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700">${p.player}</div>
+          <div class="lb-queens">${queenNames || '<span style="color:#bbb;font-size:12px">No picks yet</span>'}</div>
         </div>
-      );
+      </div>
+      <div class="lb-score">${p.score}</div>
+    </div>`;
+  }).join("");
+}
 
-      return null;
-    }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-  </script>
-
+// ── Init ──
+window.addEventListener("DOMContentLoaded", () => {
+  renderPicksExistingPlayers();
+});
+</script>
 </body>
 </html>
