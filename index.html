@@ -652,22 +652,8 @@ async function loadLeaderboard() {
     apiFetch({ action:"getResults" }),
   ]);
 
-  // Load results into state (with migration)
-  const raw = resultsData.results || {};
-  results = {};
-  Object.keys(raw).forEach(qid => {
-    const r = raw[qid];
-    if (Array.isArray(r.episodes)) {
-      results[qid] = r;
-    } else {
-      results[qid] = {
-        episodes: [r.win?"win":r.top2?"top2":r.safe?"safe":r.elim?"elim":null, null, null],
-        semiEpisodes: [null, null],
-        advances: r.advances || false,
-        finalist: r.finalist || false,
-      };
-    }
-  });
+  // Load results into state (with migration + string parsing)
+  results = parseResults(resultsData.results || {});
 
   const players = (playersData.players || [])
     .map(p => ({ ...p, score: p.queens.reduce((s, qid) => s + calcPts(qid), 0) }))
