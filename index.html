@@ -849,19 +849,24 @@ async function loadLeaderboard() {
   el.innerHTML = '<div class="spinner"></div>';
 
   try {
-    const [playersData, resultsData, mvqData] = await Promise.all([
+    const [playersData, resultsData] = await Promise.all([
       apiFetch({ action:"getAll" }),
       apiFetch({ action:"getResults" }),
-      apiFetch({ action:"getMvq" }),
     ]);
+
+    let mvqPastVotesLB = [];
+    try {
+      const mvqData = await apiFetch({ action:"getMvq" });
+      mvqPastVotesLB = mvqData.past || [];
+    } catch(e) { /* MVQ unavailable — leaderboard still works */ }
 
     results = parseResults(resultsData.results || {});
 
     // Tally MVQ bonus points per player from closed past votes
     const mvqBonus = {};
-    (mvqData.past || []).forEach(vote => {
-      const votes    = vote.votes   || {};
-      const winners  = vote.winners || [];
+    mvqPastVotesLB.forEach(vote => {
+      const votes   = vote.votes   || {};
+      const winners = vote.winners || [];
       Object.entries(votes).forEach(([player, qid]) => {
         if (winners.includes(qid)) {
           mvqBonus[player] = (mvqBonus[player] || 0) + 2;
@@ -881,9 +886,9 @@ async function loadLeaderboard() {
 
     // Build bracket color lookup
     const queenBracket = {};
-    const bracketBg = { Pink:"var(--pink-light)", Orange:"var(--orange-light)", Purple:"var(--purple-light)" };
-    const bracketText = { Pink:"var(--pink-dark)", Orange:"var(--orange-dark)", Purple:"var(--purple-dark)" };
-    const bracketDot = { Pink:"var(--pink)", Orange:"var(--orange)", Purple:"var(--purple)" };
+    const bracketBg   = { Pink:"#ffd0e8", Orange:"#ffe0c8", Purple:"#e8d8ff" };
+    const bracketText = { Pink:"#880e4f", Orange:"#c94f00", Purple:"#311b92" };
+    const bracketDot  = { Pink:"#ff6b9d", Orange:"#ff8c42", Purple:"#9c6fde" };
     Object.entries(QUEENS).forEach(([b, qs]) => qs.forEach(q => { queenBracket[q.id] = b; }));
 
     // Assign ranks accounting for ties (1,1,3 not 1,1,2)
@@ -934,9 +939,9 @@ async function loadLeaderboard() {
       }).filter(Boolean).join("");
 
       const mvqRow = p.mvqPts > 0 ? `<div style="display:flex;justify-content:space-between;align-items:center;
-        padding:6px 10px;border-radius:10px;margin-bottom:4px;background:#fff3e0;border-left:3px solid var(--orange)">
-        <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:var(--orange-dark)">⭐ MVQ Votes</span>
-        <span style="font-weight:800;font-size:14px;color:var(--orange-dark)">+${p.mvqPts}</span>
+        padding:6px 10px;border-radius:10px;margin-bottom:4px;background:#fff3e0;border-left:3px solid #ff8c42">
+        <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:#c94f00">⭐ MVQ Votes</span>
+        <span style="font-weight:800;font-size:14px;color:#c94f00">+${p.mvqPts}</span>
       </div>` : "";
 
       const rankIdx = p.rank - 1;
@@ -1306,34 +1311,53 @@ async function refreshMvqCount(vi, episode) {
   if (btn) { btn.textContent = "↻ Refreshing…"; btn.disabled = true; }
   try {
     const data = await apiFetch({ action:"getMvq" });
-    const sheetOpen = data.open ? (Array.isArray(data.open) ? data.open : [data.open]) : [];
+
+    // Defensive: handle error responses or unexpected shapes
+    if (!data || data.error) {
+      console.warn("getMvq returned error:", data?.error);
+      toast("Couldn't refresh — Sheet returned an error.");
+      if (btn) { btn.textContent = "↻ Refresh count"; btn.disabled = false; }
+      return;
+    }
+
+    const sheetOpen = data.open
+      ? (Array.isArray(data.open) ? data.open : [data.open])
+      : [];
+
     const match = sheetOpen.find(v => v.episode === episode);
     if (match) {
-      const count = Object.keys(match.votes || {}).length;
+      const sheetVotes = match.votes || {};
+      const count = Object.keys(sheetVotes).length;
       updateMvqCount(vi, count);
-      // Also update in-memory so player pills reflect latest
+
+      // Merge Sheet votes with local votes
+      const local = loadLocalMvqVotes()[episode] || {};
       if (mvqOpenVotes[vi]) {
-        // Merge Sheet votes with local (don't overwrite local votes)
-        const local = loadLocalMvqVotes()[episode] || {};
-        mvqOpenVotes[vi].votes = { ...local, ...(match.votes || {}) };
-        // Re-render player pills to show who has voted
-        const total = allPlayers.length || "?";
-        const votes = mvqOpenVotes[vi].votes;
-        const pillContainer = document.getElementById(`mvq-player-select-${vi}`)?.querySelector(".pill-row");
-        if (pillContainer) {
-          pillContainer.innerHTML = (allPlayers.length ? allPlayers : []).map(p => {
-            const hasVoted = !!(votes[p.player]);
-            return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
-              background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
-              cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
-              onclick="selectMvqPlayer(${vi},'${p.player}')">
-              ${p.player}${hasVoted?" ✓":""}
-            </div>`;
-          }).join("");
-        }
+        mvqOpenVotes[vi].votes = { ...local, ...sheetVotes };
       }
+
+      // Re-render player pills to reflect who has voted
+      const total = allPlayers.length || "?";
+      const votes = mvqOpenVotes[vi]?.votes || {};
+      const pillContainer = document.getElementById(`mvq-player-select-${vi}`)?.querySelector(".pill-row");
+      if (pillContainer) {
+        pillContainer.innerHTML = (allPlayers.length ? allPlayers : []).map(p => {
+          const hasVoted = !!(votes[p.player]);
+          return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
+            background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
+            cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
+            onclick="selectMvqPlayer(${vi},'${p.player}')">
+            ${p.player}${hasVoted?" ✓":""}
+          </div>`;
+        }).join("");
+      }
+    } else {
+      // Vote not found in Sheet yet — show local count
+      const local = loadLocalMvqVotes()[episode] || {};
+      updateMvqCount(vi, Object.keys(local).length);
     }
   } catch(e) {
+    console.error("refreshMvqCount error:", e);
     toast("Couldn't refresh — check your connection.");
   }
   if (btn) { btn.textContent = "↻ Refresh count"; btn.disabled = false; }
@@ -1717,11 +1741,17 @@ async function loadRankings() {
   const el = document.getElementById("rankings-content");
   el.innerHTML = '<div class="spinner"></div>';
   try {
-    const [playersData, resultsData, mvqData] = await Promise.all([
+    // Fetch players and results in parallel; MVQ separately with fallback
+    const [playersData, resultsData] = await Promise.all([
       apiFetch({ action:"getAll" }),
       apiFetch({ action:"getResults" }),
-      apiFetch({ action:"getMvq" }),
     ]);
+
+    let mvqPast = [];
+    try {
+      const mvqData = await apiFetch({ action:"getMvq" });
+      mvqPast = mvqData.past || [];
+    } catch(e) { /* MVQ unavailable — rankings still work without it */ }
 
     const players = playersData.players || [];
     results = parseResults(resultsData.results || {});
@@ -1734,7 +1764,7 @@ async function loadRankings() {
       const pts       = calcPts(q.id);
 
       // MVQ wins for this queen
-      const mvqWins = (mvqData.past || []).filter(v =>
+      const mvqWins = mvqPast.filter(v =>
         (v.winners || []).includes(q.id)
       ).length;
 
@@ -1817,15 +1847,19 @@ async function loadWrap() {
   const el = document.getElementById("wrap-content");
   el.innerHTML = '<div class="spinner"></div>';
   try {
-    const [playersData, resultsData, mvqData] = await Promise.all([
+    const [playersData, resultsData] = await Promise.all([
       apiFetch({ action:"getAll" }),
       apiFetch({ action:"getResults" }),
-      apiFetch({ action:"getMvq" }),
     ]);
+
+    let pastVotes = [];
+    try {
+      const mvqData = await apiFetch({ action:"getMvq" });
+      pastVotes = mvqData.past || [];
+    } catch(e) { /* MVQ unavailable — wrap still works without it */ }
 
     const players = playersData.players || [];
     results = parseResults(resultsData.results || {});
-    const pastVotes = mvqData.past || [];
 
     // Check if season is over
     const winner = ALL_QUEENS.find(q => getR(q.id).finalist);
