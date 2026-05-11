@@ -454,14 +454,17 @@ function showResultsSection(sec, tabEl) {
 }
 
 async function apiFetch(params) {
-  const url = API + "?" + new URLSearchParams(params);
+  // Append a random nonce to the URL so Safari never serves a cached response.
+  // No custom headers — those trigger a CORS preflight that Apps Script rejects.
+  const p = { ...params, _n: Math.random().toString(36).slice(2) };
+  const url = API + "?" + new URLSearchParams(p);
   const r = await fetch(url);
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
 }
 
 async function apiPost(body) {
-  const params = new URLSearchParams({ action: body.action });
+  const params = new URLSearchParams({ action: body.action, _n: Math.random().toString(36).slice(2) });
   Object.entries(body).forEach(([k,v]) => {
     if (k !== "action") params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
   });
@@ -1079,17 +1082,18 @@ async function loadMvqView() {
       }
     }
 
-    // Merge Sheet votes on top of local votes
+    // Merge: use Sheet's votedPlayers/voteCount for display, local votes for submit logic
     mvqOpenVotes = scheduledOpen
       .filter(ep => !closedEps.has(ep.episode))
       .map(ep => {
         const sheetVote = sheetOpen.find(v => v.episode === ep.episode);
-        const sheetVotes = sheetVote?.votes || {};
         const local = localVotes[ep.episode] || {};
         return {
-          episode:  ep.episode,
-          deadline: getDeadlineFromClose(ep.closeUTC),
-          votes:    { ...local, ...sheetVotes }
+          episode:      ep.episode,
+          deadline:     getDeadlineFromClose(ep.closeUTC),
+          votes:        local,   // local picks only (for submit/display of own vote)
+          votedPlayers: sheetVote?.votedPlayers || Object.keys(local),
+          voteCount:    sheetVote?.voteCount    ?? Object.keys(local).length,
         };
       });
   } catch(e) {
@@ -1123,8 +1127,9 @@ function renderMvqOpen() {
   const total = allPlayers.length || "?";
 
   openDiv.innerHTML = mvqOpenVotes.map((vote, vi) => {
-    const votes     = vote.votes || {};
-    const voteCount = Object.keys(votes).length;
+    const votes       = vote.votes || {};          // local picks only
+    const votedNames  = vote.votedPlayers || Object.keys(votes);
+    const voteCount   = vote.voteCount   ?? votedNames.length;
 
     return `<div style="background:#fff;border:3px solid #ff8c42;border-radius:18px;padding:18px 20px;margin-bottom:20px" id="mvq-vote-card-${vi}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -1146,7 +1151,7 @@ function renderMvqOpen() {
         <p style="color:#555;font-size:14px;font-weight:700;margin-bottom:10px">👇 Tap your name to vote:</p>
         <div class="pill-row" style="gap:10px">
           ${(allPlayers.length ? allPlayers : []).map(p => {
-            const hasVoted = !!(votes[p.player]);
+            const hasVoted = votedNames.includes(p.player);
             return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
               background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
               cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
@@ -1291,7 +1296,7 @@ async function submitMvqVote(vi, episode) {
 
 // Update the live vote count display for a given vote card
 function updateMvqCount(vi, count) {
-  const total = allPlayers.length || "?";
+  const total   = allPlayers.length || "?";
   const countEl = document.getElementById(`mvq-count-${vi}`);
   if (countEl) {
     countEl.textContent = `${count} of ${total} players have voted — results hidden until admin closes`;
@@ -1319,23 +1324,21 @@ async function refreshMvqCount(vi, episode) {
 
     const match = sheetOpen.find(v => v.episode === episode);
     if (match) {
-      const sheetVotes = match.votes || {};
-      const count = Object.keys(sheetVotes).length;
+      const count       = match.voteCount    ?? 0;
+      const votedNames  = match.votedPlayers || [];
       updateMvqCount(vi, count);
 
-      // Merge Sheet votes with local votes
-      const local = loadLocalMvqVotes()[episode] || {};
+      // Update in-memory votedPlayers so pills re-render correctly
       if (mvqOpenVotes[vi]) {
-        mvqOpenVotes[vi].votes = { ...local, ...sheetVotes };
+        mvqOpenVotes[vi].votedPlayers = votedNames;
+        mvqOpenVotes[vi].voteCount    = count;
       }
 
-      // Re-render player pills to reflect who has voted
-      const total = allPlayers.length || "?";
-      const votes = mvqOpenVotes[vi]?.votes || {};
+      // Re-render player pills using votedNames (not queen picks — those stay blind)
       const pillContainer = document.getElementById(`mvq-player-select-${vi}`)?.querySelector(".pill-row");
       if (pillContainer) {
         pillContainer.innerHTML = (allPlayers.length ? allPlayers : []).map(p => {
-          const hasVoted = !!(votes[p.player]);
+          const hasVoted = votedNames.includes(p.player);
           return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
             background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
             cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
@@ -1345,7 +1348,7 @@ async function refreshMvqCount(vi, episode) {
         }).join("");
       }
     } else {
-      // Vote not found in Sheet yet — show local count
+      // Vote not in Sheet yet — fall back to local count
       const local = loadLocalMvqVotes()[episode] || {};
       updateMvqCount(vi, Object.keys(local).length);
     }
