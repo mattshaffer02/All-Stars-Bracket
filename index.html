@@ -110,6 +110,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
 .home-btn:hover { transform:scale(1.02); }
 .home-btn-picks    { background-color:#ffffff; color:#2d0036; border-color:#c9b3f5; }
 .home-btn-mvq      { background-color:#ff8c42; color:#ffffff; border-color:#ff8c42; }
+.home-btn-chat     { background-color:#e91e8c; color:#ffffff; border-color:#e91e8c; }
 .home-btn-results  { background-color:#9c6fde; color:#ffffff; border-color:#9c6fde; }
 .home-btn-board    { background-color:#ff6b9d; color:#ffffff; border-color:#ff6b9d; background-image:linear-gradient(135deg,#ff6b9d,#9c6fde); }
 .pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
@@ -129,6 +130,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   <button data-view="picks" onclick="showView('picks')">🗳️ Picks</button>
   <button data-view="results" onclick="showView('results')">📋 Results</button>
   <button data-view="mvq" onclick="showView('mvq')">⭐ MVQ</button>
+  <button data-view="chat" onclick="showView('chat')">💬 Chat</button>
   <button data-view="leaderboard" onclick="showView('leaderboard')">🏆 Board</button>
 </nav>
 
@@ -144,6 +146,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
     </div>
     <button class="home-btn home-btn-picks" onclick="showView('picks')">👀 View My Picks <span style="font-size:13px;font-weight:400;opacity:.7">(locked)</span></button>
     <button class="home-btn home-btn-mvq" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
+    <button class="home-btn home-btn-chat" onclick="showView('chat')">💬 Smack Talk</button>
     <button class="home-btn home-btn-results" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <button class="home-btn home-btn-board" onclick="showView('leaderboard')">🏆 Leaderboard</button>
     <div class="card" style="margin-top:24px">
@@ -273,6 +276,51 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
 
   </div>
 
+  <!-- CHAT -->
+
+  <div id="view-chat" class="view">
+    <h2>💬 Smack Talk</h2>
+
+```
+<!-- Message composer -->
+<div style="background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:20px;box-shadow:0 2px 16px rgba(0,0,0,0.07)">
+  <!-- Player selector -->
+  <div id="chat-player-select" style="margin-bottom:12px">
+    <p style="color:#888;font-size:13px;margin-bottom:8px">Who are you?</p>
+    <div id="chat-player-pills" class="pill-row"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input type="text" id="chat-name-input" placeholder="Or type your name…" style="flex:1"
+        onkeydown="if(event.key==='Enter')setChatPlayer(document.getElementById('chat-name-input').value)" />
+      <button class="btn btn-purple btn-sm" onclick="setChatPlayer(document.getElementById('chat-name-input').value)">Set</button>
+    </div>
+  </div>
+
+  <!-- Message box (shown after name selected) -->
+  <div id="chat-compose" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036" id="chat-sending-as"></span>
+      <button style="background:none;border:none;cursor:pointer;color:#bbb;font-size:13px" onclick="resetChatPlayer()">← Change</button>
+    </div>
+    <textarea id="chat-message-input" placeholder="Talk your smack… 👑💅"
+      style="width:100%;padding:12px 14px;border-radius:12px;border:2px solid #c8b0f0;font-family:Georgia,serif;font-size:15px;resize:none;outline:none;min-height:80px;color:#2d0036;background:#fff"
+      onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')sendChatMessage()"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <span style="font-size:12px;color:#bbb">Cmd+Enter to send</span>
+      <button id="chat-send-btn" class="btn btn-gradient btn-sm" onclick="sendChatMessage()">Send 💬</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feed -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#2d0036">Messages</div>
+  <button class="btn btn-outline btn-sm" onclick="loadChat()">↻ Refresh</button>
+</div>
+<div id="chat-feed"><div class="spinner"></div></div>
+```
+
+  </div>
+
   <!-- LEADERBOARD -->
 
   <div id="view-leaderboard" class="view">
@@ -367,6 +415,7 @@ function showView(id) {
   if (btn) btn.classList.add("active");
   if (id === "leaderboard") loadLeaderboard();
   if (id === "mvq") loadMvqView();
+  if (id === "chat") loadChat();
   if (id === "picks") {
     const banner = document.getElementById("picks-locked-banner");
     if (banner) banner.style.display = PICKS_LOCKED ? "block" : "none";
@@ -1050,8 +1099,14 @@ function renderMvqOpen() {
         <span style="background:#ff8c42;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">🗳️ VOTE OPEN</span>
       </div>
       <div style="color:#555;font-size:13px;margin-bottom:4px">🗓️ Closes: ${vote.deadline}</div>
-      <div style="background:#ffe0c8;border-radius:10px;padding:8px 14px;margin-bottom:16px;font-size:13px;color:#c94f00;font-weight:700">
-        ${voteCount} of ${total} players have voted — results hidden until closed
+      <div id="mvq-count-${vi}" style="background:#ffe0c8;border-radius:10px;padding:8px 14px;margin-bottom:6px;font-size:13px;color:#c94f00;font-weight:700">
+        ${voteCount} of ${total} players have voted — results hidden until admin closes
+      </div>
+      <button onclick="refreshMvqCount(${vi},'${vote.episode}')" style="background:none;border:none;color:#9c6fde;font-size:12px;cursor:pointer;font-weight:700;margin-bottom:12px;padding:2px 0">
+        ↻ Refresh count
+      </button>
+      <div style="background:#f4f4f4;border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:#888">
+        💡 Each person votes on their own device. Tap "Refresh count" to see the latest tally.
       </div>
 
       <div id="mvq-player-select-${vi}">
@@ -1157,7 +1212,7 @@ async function submitMvqVote(vi, episode) {
   const btn = document.getElementById(`mvq-submit-${vi}`);
   btn.textContent = "Saving…"; btn.disabled = true;
   try {
-    // Always save to localStorage first — this always works
+    // Save to localStorage immediately (always works)
     const localVotes = loadLocalMvqVotes();
     if (!localVotes[episode]) localVotes[episode] = {};
     localVotes[episode][state.player] = state.queen;
@@ -1167,38 +1222,86 @@ async function submitMvqVote(vi, episode) {
     if (!mvqOpenVotes[vi].votes) mvqOpenVotes[vi].votes = {};
     mvqOpenVotes[vi].votes[state.player] = state.queen;
 
-    // Try Sheet sync (non-blocking — failure is fine)
-    apiPost({ action:"saveMvqVote", episode, player:state.player, queen:state.queen }).catch(() => {});
+    // Sync to Sheet and get back the live count
+    try {
+      const res = await apiPost({ action:"saveMvqVote", episode, player:state.player, queen:state.queen });
+      if (res.success && res.voteCount !== undefined) {
+        // Update live count from Sheet (reflects all devices)
+        updateMvqCount(vi, res.voteCount);
+      }
+    } catch(syncErr) {
+      // Sheet sync failed — that's ok, local vote is saved
+    }
 
-    // Update UI
-    const total = allPlayers.length || "?";
-    const count = Object.keys(mvqOpenVotes[vi].votes).length;
+    // Update UI feedback
     const fb = document.getElementById(`mvq-feedback-${vi}`);
     if (fb) { fb.style.display="block"; fb.textContent="✅ Vote saved!"; fb.style.color="#2e7d32"; }
-
-    // Update the vote count display
-    const card = document.getElementById(`mvq-vote-card-${vi}`);
-    const countEl = card?.querySelector('[style*="color:#c94f00"]');
-    if (countEl) countEl.textContent = `${count} of ${total} players have voted — results hidden until closed`;
 
     // Update player pill to show checkmark
     const playerPills = document.getElementById(`mvq-player-select-${vi}`);
     if (playerPills) {
-      const pills = playerPills.querySelectorAll("div[onclick]");
-      pills.forEach(pill => {
-        if (pill.textContent.trim().startsWith(state.player)) {
-          pill.style.background = "#ff8c42";
-          pill.style.color = "#fff";
+      playerPills.querySelectorAll("div[onclick]").forEach(pill => {
+        if (pill.textContent.trim().replace(" ✓","") === state.player) {
+          pill.style.background  = "#ff8c42";
+          pill.style.color       = "#fff";
           pill.style.borderColor = "#ff8c42";
-          if (!pill.textContent.includes("✓")) pill.textContent = state.player + " ✓";
+          pill.textContent = state.player + " ✓";
         }
       });
     }
-    toast("✅ MVQ vote saved!");
+    toast("✅ Vote saved!");
   } catch(e) {
     toast("❌ Error saving vote. Try again.");
   }
   btn.textContent = "Submit Vote"; btn.disabled = false;
+}
+
+// Update the live vote count display for a given vote card
+function updateMvqCount(vi, count) {
+  const total = allPlayers.length || "?";
+  const countEl = document.getElementById(`mvq-count-${vi}`);
+  if (countEl) {
+    countEl.textContent = `${count} of ${total} players have voted — results hidden until admin closes`;
+  }
+}
+
+// Pull fresh count from Sheet and update display
+async function refreshMvqCount(vi, episode) {
+  const btn = document.querySelector(`button[onclick="refreshMvqCount(${vi},'${episode}')"]`);
+  if (btn) { btn.textContent = "↻ Refreshing…"; btn.disabled = true; }
+  try {
+    const data = await apiFetch({ action:"getMvq" });
+    const sheetOpen = data.open ? (Array.isArray(data.open) ? data.open : [data.open]) : [];
+    const match = sheetOpen.find(v => v.episode === episode);
+    if (match) {
+      const count = Object.keys(match.votes || {}).length;
+      updateMvqCount(vi, count);
+      // Also update in-memory so player pills reflect latest
+      if (mvqOpenVotes[vi]) {
+        // Merge Sheet votes with local (don't overwrite local votes)
+        const local = loadLocalMvqVotes()[episode] || {};
+        mvqOpenVotes[vi].votes = { ...local, ...(match.votes || {}) };
+        // Re-render player pills to show who has voted
+        const total = allPlayers.length || "?";
+        const votes = mvqOpenVotes[vi].votes;
+        const pillContainer = document.getElementById(`mvq-player-select-${vi}`)?.querySelector(".pill-row");
+        if (pillContainer) {
+          pillContainer.innerHTML = (allPlayers.length ? allPlayers : []).map(p => {
+            const hasVoted = !!(votes[p.player]);
+            return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
+              background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
+              cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
+              onclick="selectMvqPlayer(${vi},'${p.player}')">
+              ${p.player}${hasVoted?" ✓":""}
+            </div>`;
+          }).join("");
+        }
+      }
+    }
+  } catch(e) {
+    toast("Couldn't refresh — check your connection.");
+  }
+  if (btn) { btn.textContent = "↻ Refresh count"; btn.disabled = false; }
 }
 
 function selectMvqQueen_legacy() {} // no-op, kept for safety
@@ -1304,24 +1407,274 @@ function renderMvqAdminActions() {
 async function closeMvqVote(episode) {
   const vote = mvqOpenVotes.find(v => v.episode === episode);
   if (!vote) return;
-  if (!confirm(`Close the vote for "${episode}" and reveal results?`)) return;
+  if (!confirm(`Close the vote for "${episode}" and reveal results?\n\nMake sure everyone has submitted their vote first — results cannot be changed after closing.`)) return;
 
-  const votes    = vote.votes || {};
-  const tally    = {};
-  Object.values(votes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
+  // Gather all votes: merge localStorage (this device) with in-memory votes
+  const localVotes = loadLocalMvqVotes();
+  const allVotes = { ...(localVotes[episode] || {}), ...(vote.votes || {}) };
+
+  const tally = {};
+  Object.values(allVotes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
   const maxVotes = Math.max(...Object.values(tally), 0);
   const winners  = maxVotes > 0 ? Object.keys(tally).filter(qid => tally[qid] === maxVotes) : [];
-  const bonusPlayers = Object.entries(votes)
+  const bonusPlayers = Object.entries(allVotes)
     .filter(([,qid]) => winners.includes(qid))
     .map(([player]) => player);
 
-  const res = await apiPost({ action:"closeMvqVote", episode, winners:JSON.stringify(winners), bonusPlayers:JSON.stringify(bonusPlayers) });
-  if (res.success) {
-    toast(`✅ "${episode}" closed! ${bonusPlayers.length} player(s) earned +2 pts.`);
-    await loadMvqView();
-  } else {
-    toast("❌ Error closing vote.");
+  // Try Sheet sync but don't block
+  apiPost({ action:"closeMvqVote", episode, winners:JSON.stringify(winners), bonusPlayers:JSON.stringify(bonusPlayers), votes:JSON.stringify(allVotes) }).catch(()=>{});
+
+  // Save closed vote to localStorage so it persists
+  const closedVote = {
+    episode,
+    deadline: vote.deadline,
+    votes: allVotes,
+    winners,
+    bonusPlayers,
+    closed: true
+  };
+  const allLocal = loadLocalMvqVotes();
+  allLocal[`__closed__${episode}`] = closedVote;
+  saveLocalMvqVotes(allLocal);
+
+  // Remove from open votes
+  mvqOpenVotes = mvqOpenVotes.filter(v => v.episode !== episode);
+
+  // Add to past votes
+  mvqPastVotes = [closedVote, ...mvqPastVotes];
+
+  // Show dramatic reveal
+  showMvqReveal(closedVote);
+
+  renderMvqOpen();
+  renderMvqPast();
+  renderMvqAdminActions();
+  toast(`✅ "${episode}" closed! ${bonusPlayers.length} player(s) earned +2 pts.`);
+}
+
+function showMvqReveal(vote) {
+  const votes   = vote.votes || {};
+  const winners = vote.winners || [];
+  const winnerQueens = winners.map(qid => ALL_QUEENS.find(q => q.id === qid)).filter(Boolean);
+  const bonus   = vote.bonusPlayers || [];
+
+  // Build tally sorted by votes
+  const tally = {};
+  Object.values(votes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
+  const sorted = Object.entries(tally).sort((a,b) => b[1]-a[1]);
+
+  const tallyRows = sorted.map(([qid, count]) => {
+    const q   = ALL_QUEENS.find(x => x.id === qid);
+    const isW = winners.includes(qid);
+    const pct = Math.round((count / Object.keys(votes).length) * 100);
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:${isW?"#c94f00":"#555"}">
+          ${isW?"⭐ ":""}${q?q.emoji+" "+q.name:qid}
+        </span>
+        <span style="font-weight:800;font-size:15px;color:${isW?"#c94f00":"#888"}">${count} vote${count!==1?"s":""}</span>
+      </div>
+      <div style="height:10px;background:#f4f4f4;border-radius:10px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${isW?"#ff8c42":"#ccc"};border-radius:10px;transition:width .5s"></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const voterRows = Object.entries(votes).map(([player, qid]) => {
+    const q   = ALL_QUEENS.find(x => x.id === qid);
+    const isW = winners.includes(qid);
+    const gotBonus = bonus.includes(player);
+    return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px">
+      <span style="color:#333;font-weight:700">${player}</span>
+      <span style="color:${isW?"#c94f00":"#888"};font-weight:700">${q?q.emoji+" "+q.name.split(" ")[0]:qid}${gotBonus?" +2pts ⭐":""}</span>
+    </div>`;
+  }).join("");
+
+  const overlay = document.createElement("div");
+  overlay.id = "mvq-reveal-overlay";
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:24px;padding:28px 24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:48px;margin-bottom:8px">⭐</div>
+        <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:22px;color:#2d0036">${vote.episode} MVQ Results</div>
+      </div>
+
+      <div style="background:#ffe0c8;border-radius:16px;padding:16px 20px;text-align:center;margin-bottom:20px;border:3px solid #ff8c42">
+        <div style="font-size:13px;color:#888;font-weight:700;margin-bottom:4px">YOUR GROUP'S MOST VALUABLE QUEEN</div>
+        ${winnerQueens.map(q => `
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:24px;color:#c94f00">${q.emoji} ${q.name}</div>
+        `).join('<div style="font-size:16px;color:#888;margin:4px 0">— tied with —</div>')}
+        ${bonus.length ? `<div style="font-size:13px;color:#2e7d32;font-weight:700;margin-top:8px">🎉 ${bonus.join(", ")} earned +2 pts!</div>` : ""}
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036;margin-bottom:12px">Vote Breakdown</div>
+        ${tallyRows}
+      </div>
+
+      <div style="margin-bottom:24px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036;margin-bottom:8px">Who Voted For Whom</div>
+        ${voterRows || '<p style="color:#bbb;text-align:center">No votes recorded</p>'}
+      </div>
+
+      <button onclick="document.getElementById('mvq-reveal-overlay').remove()"
+        style="width:100%;padding:14px;border-radius:14px;border:none;background:#9c6fde;color:#fff;cursor:pointer;font-family:'Playfair Display',serif;font-size:16px;font-weight:700">
+        Got it! Close
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// ── CHAT ──────────────────────────────────────────────────────────────────────
+const CHAT_PLAYER_KEY = "as11_chat_player";
+let chatPlayer = localStorage.getItem(CHAT_PLAYER_KEY) || null;
+let chatRefreshTimer = null;
+
+// Assign a consistent color to each player name
+const CHAT_COLORS = [
+  "#e91e8c","#9c6fde","#ff8c42","#2196f3","#4caf50",
+  "#ff5722","#607d8b","#795548","#e91e63","#009688"
+];
+function chatColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return CHAT_COLORS[Math.abs(hash) % CHAT_COLORS.length];
+}
+
+function formatChatTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diffMin = Math.floor((now - d) / 60000);
+  if (diffMin < 1)  return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24)  return `${diffHr}h ago`;
+  return d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
+}
+
+async function loadChat() {
+  // Render player pills if players loaded
+  renderChatPlayerPills();
+
+  // Show compose area if player already set
+  if (chatPlayer) {
+    document.getElementById("chat-player-select").style.display = "none";
+    document.getElementById("chat-compose").style.display = "block";
+    document.getElementById("chat-sending-as").textContent = `Sending as: ${chatPlayer}`;
   }
+
+  const feed = document.getElementById("chat-feed");
+  try {
+    const data = await apiFetch({ action:"getChat" });
+    const messages = data.messages || [];
+    if (!messages.length) {
+      feed.innerHTML = `<div style="text-align:center;padding:40px 0;color:#bbb">
+        <div style="font-size:40px;margin-bottom:12px">💬</div>
+        <div style="font-size:15px">No messages yet — be the first to talk smack!</div>
+      </div>`;
+      return;
+    }
+
+    feed.innerHTML = messages.map((msg, i) => {
+      const isMe = msg.player === chatPlayer;
+      const color = chatColor(msg.player);
+      const initials = msg.player.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+      return `<div style="display:flex;gap:10px;margin-bottom:16px;${isMe?"flex-direction:row-reverse":""}">
+        <!-- Avatar -->
+        <div style="width:38px;height:38px;border-radius:50%;background:${color};color:#fff;
+          display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;
+          flex-shrink:0;font-family:'Playfair Display',serif">${initials}</div>
+        <!-- Bubble -->
+        <div style="max-width:75%">
+          <div style="font-size:12px;color:#aaa;margin-bottom:3px;${isMe?"text-align:right":""}">
+            <span style="font-weight:700;color:${color}">${msg.player}</span>
+            · ${formatChatTime(msg.timestamp)}
+          </div>
+          <div style="background:${isMe?"linear-gradient(135deg,#ff6b9d,#9c6fde)":"#fff"};
+            color:${isMe?"#fff":"#2d0036"};
+            border-radius:${isMe?"18px 18px 4px 18px":"18px 18px 18px 4px"};
+            padding:10px 14px;font-size:15px;line-height:1.5;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+            border:${isMe?"none":"2px solid #f0eaff"};
+            word-break:break-word">
+            ${escapeHtml(msg.text)}
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+
+    // Scroll to bottom
+    feed.scrollTop = feed.scrollHeight;
+
+  } catch(e) {
+    feed.innerHTML = `<p style="color:#bbb;text-align:center;padding:30px">
+      Couldn't load messages — check your connection.
+    </p>`;
+  }
+
+  // Auto-refresh every 30s while chat tab is visible
+  clearTimeout(chatRefreshTimer);
+  const chatView = document.getElementById("view-chat");
+  if (chatView && chatView.classList.contains("active")) {
+    chatRefreshTimer = setTimeout(loadChat, 30000);
+  }
+}
+
+function renderChatPlayerPills() {
+  const container = document.getElementById("chat-player-pills");
+  if (!container) return;
+  if (!allPlayers.length) { container.innerHTML = ""; return; }
+  container.innerHTML = allPlayers.map(p =>
+    `<div class="pill" style="${p.player===chatPlayer?"background:#e91e8c;color:#fff;border-color:#e91e8c":""}"
+      onclick="setChatPlayer('${p.player}')">${p.player}</div>`
+  ).join("");
+}
+
+function setChatPlayer(name) {
+  name = name?.trim();
+  if (!name) { toast("Enter your name first!"); return; }
+  chatPlayer = name;
+  localStorage.setItem(CHAT_PLAYER_KEY, name);
+  document.getElementById("chat-player-select").style.display = "none";
+  document.getElementById("chat-compose").style.display = "block";
+  document.getElementById("chat-sending-as").textContent = `Sending as: ${name}`;
+  renderChatPlayerPills();
+}
+
+function resetChatPlayer() {
+  document.getElementById("chat-player-select").style.display = "block";
+  document.getElementById("chat-compose").style.display = "none";
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+            .replace(/"/g,"&quot;").replace(/\n/g,"<br>");
+}
+
+async function sendChatMessage() {
+  if (!chatPlayer) { toast("Select your name first!"); return; }
+  const input = document.getElementById("chat-message-input");
+  const text  = input.value.trim();
+  if (!text) { toast("Type something first! 👀"); return; }
+  if (text.length > 500) { toast("Keep it under 500 characters!"); return; }
+
+  const btn = document.getElementById("chat-send-btn");
+  btn.textContent = "Sending…"; btn.disabled = true;
+
+  try {
+    const res = await apiPost({ action:"sendChat", player:chatPlayer, text });
+    if (res.success) {
+      input.value = "";
+      await loadChat();
+    } else {
+      toast("❌ Couldn't send. Try again.");
+    }
+  } catch(e) {
+    toast("❌ Couldn't send. Check your connection.");
+  }
+  btn.textContent = "Send 💬"; btn.disabled = false;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
