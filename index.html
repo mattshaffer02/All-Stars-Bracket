@@ -28,10 +28,10 @@ body { font-family: Georgia, serif; background: linear-gradient(160deg,#fff5fa 0
 .container { max-width:620px; margin:0 auto; padding:0 16px 60px; }
 
 /* NAV */
-nav { display:flex; background:#fff; border-bottom:2px solid var(–purple-light); position:sticky; top:0; z-index:100; overflow-x:auto; }
-nav button { flex:1; min-width:72px; padding:14px 6px; border:none; background:none; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:13px; color:#999; border-bottom:3px solid transparent; transition:all .2s; white-space:nowrap; }
-nav button.active { color:var(–purple); border-bottom-color:var(–purple); font-weight:700; }
-nav button:hover:not(.active) { color:var(–black); background:var(–purple-light); }
+nav { display:flex; background:#fff; border-bottom:2px solid #e8d8ff; position:sticky; top:0; z-index:100; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+nav button { flex:0 0 auto; padding:12px 10px; border:none; background:none; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:12px; color:#999; border-bottom:3px solid transparent; transition:all .2s; white-space:nowrap; }
+nav button.active { color:#9c6fde; border-bottom-color:#9c6fde; font-weight:700; }
+nav button:hover:not(.active) { color:#2d0036; background:#e8d8ff; }
 
 /* VIEWS */
 .view { display:none; padding-top:24px; }
@@ -133,7 +133,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   <button data-view="results" onclick="showView('results')">📋 Results</button>
   <button data-view="mvq" onclick="showView('mvq')">⭐ MVQ</button>
   <button data-view="rankings" onclick="showView('rankings')">📊 Queens</button>
-  <button data-view="chat" onclick="showView('chat')">💅 Reading Room</button>
+  <button data-view="chat" onclick="showView('chat')">💅 Library</button>
   <button data-view="leaderboard" onclick="showView('leaderboard')">🏆 Board</button>
   <button data-view="wrap" onclick="showView('wrap')">🎬 Wrap</button>
 </nav>
@@ -156,16 +156,94 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
     <button class="home-btn home-btn-wrap" onclick="showView('wrap')">🎬 Season Wrap</button>
     <button class="home-btn home-btn-results" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <div class="card" style="margin-top:24px">
-      <div style="font-family:'Playfair Display',serif;font-weight:700;margin-bottom:12px">📊 Scoring Guide</div>
-      <div class="score-guide">
-        <div class="score-item"><div class="score-pts">5</div><div class="score-label">Episode Win</div></div>
-        <div class="score-item"><div class="score-pts">3</div><div class="score-label">Top 2 / Lip Sync</div></div>
-        <div class="score-item"><div class="score-pts">2</div><div class="score-label">⭐ MVQ Vote Match</div></div>
-        <div class="score-item"><div class="score-pts">10</div><div class="score-label">Advances to Semis</div></div>
-        <div class="score-item" style="grid-column:1/-1"><div class="score-pts">25</div><div class="score-label">👑 Wins the Crown</div></div>
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:18px;margin-bottom:4px;color:#2d0036">📊 How to Score Points</div>
+      <div style="font-size:13px;color:#888;margin-bottom:16px">Pick your queens before the season — then earn points as they slay each episode.</div>
+
+```
+  <!-- Step 1: Pick queens -->
+  <div style="background:#e8d8ff;border-radius:14px;padding:14px 16px;margin-bottom:12px">
+    <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#4a148c;margin-bottom:6px">Step 1 — Pick Your Queens</div>
+    <div style="font-size:13px;color:#444;line-height:1.6">Before the season starts, select queens from each bracket that you think will perform well. You earn points whenever a queen you picked does well — so choose wisely!</div>
+  </div>
+
+  <!-- Episode scoring -->
+  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 2 — Earn Points Each Episode</div>
+
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff6b9d;min-width:36px;text-align:center">5</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#2d0036">🏆 Episode Win</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">Your queen wins the main challenge AND the lip sync — the full package.</div>
       </div>
     </div>
-    <p style="text-align:center;color:#bbb;font-size:12px;margin-top:20px">12 episodes · Premieres May 8, 2026 · Paramount+</p>
+
+    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff8c42;min-width:36px;text-align:center">3</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#2d0036">🥈 Top 2 / Lip Sync</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">Your queen wins the main challenge but loses the lip sync, or is called as a top performer.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#9c6fde;min-width:36px;text-align:center">0</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#2d0036">✅ Safe / ❌ Bottom</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">Safe queens and bottom queens earn no points — only the standouts score.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bracket & semis -->
+  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 3 — Survive the Brackets</div>
+
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#00897b;min-width:36px;text-align:center">10</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#2d0036">⬆️ Advances to Semis</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">The top 2 queens from each bracket advance to the semifinals. If your queen is one of them, that's a big bonus.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff6b9d;min-width:36px;text-align:center">5</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#2d0036">🏆 Semi-Final Win or Top 2</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">Semifinals follow the same scoring — wins and top 2 results in Eps 10–11 earn points too.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Crown & MVQ -->
+  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 4 — Bonus Points</div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:12px;background:#fffbe6;border-radius:12px;padding:12px 14px;border:2px solid #ffd700;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c8a000;min-width:36px;text-align:center">25</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#2d0036">👑 Wins the Crown</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">If your queen wins All Stars 11, you get the biggest bonus in the game. Worth riding for!</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;background:#fff3e0;border-radius:12px;padding:12px 14px;border:2px solid #ff8c42;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c94f00;min-width:36px;text-align:center">2</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#2d0036">⭐ MVQ Vote Match</div>
+        <div style="font-size:12px;color:#888;margin-top:2px">After each episode, vote for who you think was the Most Valuable Queen. If your pick matches the group's consensus, you earn +2. Ties count for everyone.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#f4f4f4;border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:#888;line-height:1.6">
+    💡 <strong style="color:#2d0036">Quick example:</strong> You pick Morgan McMichaels. She wins her bracket episode (+5), advances to semis (+10), wins a semi (+5), then wins the crown (+25). That's <strong style="color:#9c6fde">45 points</strong> from one queen — plus any MVQ bonuses you earn along the way.
+  </div>
+</div>
+<p style="text-align:center;color:#bbb;font-size:12px;margin-top:20px">12 episodes · Premieres May 8, 2026 · Paramount+</p>
+```
+
   </div>
 
   <!-- PICKS -->
