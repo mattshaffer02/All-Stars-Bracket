@@ -454,29 +454,19 @@ function showResultsSection(sec, tabEl) {
 }
 
 async function apiFetch(params) {
-  // Safari iOS ignores cache:"no-store" for Apps Script URLs.
-  // Using a random nonce (not just timestamp) forces a unique URL every call.
-  const p = { ...params, _cb: Math.random().toString(36).slice(2) + Date.now() };
-  const url = API + "?" + new URLSearchParams(p);
-  const r = await fetch(url, {
-    cache: "no-store",
-    headers: { "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache" }
-  });
+  const url = API + "?" + new URLSearchParams(params);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
 }
 
 async function apiPost(body) {
-  const params = new URLSearchParams({
-    action: body.action,
-    _cb: Math.random().toString(36).slice(2) + Date.now()
-  });
+  const params = new URLSearchParams({ action: body.action });
   Object.entries(body).forEach(([k,v]) => {
     if (k !== "action") params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
   });
-  const r = await fetch(API + "?" + params.toString(), {
-    cache: "no-store",
-    headers: { "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache" }
-  });
+  const r = await fetch(API + "?" + params.toString());
+  if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
 }
 
@@ -969,7 +959,10 @@ async function loadLeaderboard() {
     el.innerHTML += `<p style="color:#ccc;font-size:12px;text-align:center;margin-top:20px">Win +5 · Top 2 +3 · Advances +10 · Wins Crown +25 · MVQ Vote +2</p>`;
 
   } catch(e) {
-    el.innerHTML = `<p class="empty">⚠️ Couldn't load leaderboard.<br><span style="font-size:13px">Check your connection and try refreshing.</span></p>`;
+    el.innerHTML = `<div style="padding:20px;color:#c00;font-size:13px;background:#fff3f3;border-radius:12px;margin:20px 0">
+      <strong>Error loading leaderboard:</strong><br>${e.message || e.toString()}<br><br>
+      <button onclick="loadLeaderboard()" style="padding:8px 16px;border-radius:10px;border:2px solid #9c6fde;background:#9c6fde;color:#fff;cursor:pointer;font-size:14px;font-weight:700">↻ Try Again</button>
+    </div>`;
     console.error("Leaderboard error:", e);
   }
 }
@@ -1839,7 +1832,7 @@ async function loadRankings() {
   } catch(e) {
     el.innerHTML = `<div style="padding:20px;color:#c00;font-size:13px;background:#fff3f3;border-radius:12px;margin:20px 0">
       <strong>Error loading rankings:</strong><br>${e.message || e.toString()}<br><br>
-      <button onclick="loadRankings()" class="btn btn-purple btn-sm">↻ Try Again</button>
+      <button onclick="loadRankings()" style="padding:8px 16px;border-radius:10px;border:2px solid #9c6fde;background:#9c6fde;color:#fff;cursor:pointer;font-size:14px;font-weight:700">↻ Try Again</button>
     </div>`;
     console.error("loadRankings error:", e);
   }
@@ -2001,7 +1994,7 @@ async function loadWrap() {
   } catch(e) {
     el.innerHTML = `<div style="padding:20px;color:#c00;font-size:13px;background:#fff3f3;border-radius:12px;margin:20px 0">
       <strong>Error loading wrap:</strong><br>${e.message || e.toString()}<br><br>
-      <button onclick="loadWrap()" class="btn btn-purple btn-sm">↻ Try Again</button>
+      <button onclick="loadWrap()" style="padding:8px 16px;border-radius:10px;border:2px solid #9c6fde;background:#9c6fde;color:#fff;cursor:pointer;font-size:14px;font-weight:700">↻ Try Again</button>
     </div>`;
     console.error("loadWrap error:", e);
   }
