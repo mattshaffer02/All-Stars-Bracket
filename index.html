@@ -1837,8 +1837,11 @@ async function loadRankings() {
       el.innerHTML = '<p style="color:#bbb;text-align:center;padding:40px 0">No data yet.</p>';
     }
   } catch(e) {
-    el.innerHTML = '<p style="color:#bbb;text-align:center;padding:30px">Couldn\'t load rankings — check your connection.</p>';
-    console.error(e);
+    el.innerHTML = `<div style="padding:20px;color:#c00;font-size:13px;background:#fff3f3;border-radius:12px;margin:20px 0">
+      <strong>Error loading rankings:</strong><br>${e.message || e.toString()}<br><br>
+      <button onclick="loadRankings()" class="btn btn-purple btn-sm">↻ Try Again</button>
+    </div>`;
+    console.error("loadRankings error:", e);
   }
 }
 
@@ -1996,8 +1999,11 @@ async function loadWrap() {
     el.innerHTML = seasonBanner + statsHtml + superlativesHtml + standingsHtml;
 
   } catch(e) {
-    el.innerHTML = '<p style="color:#bbb;text-align:center;padding:30px">Couldn\'t load wrap — check your connection.</p>';
-    console.error(e);
+    el.innerHTML = `<div style="padding:20px;color:#c00;font-size:13px;background:#fff3f3;border-radius:12px;margin:20px 0">
+      <strong>Error loading wrap:</strong><br>${e.message || e.toString()}<br><br>
+      <button onclick="loadWrap()" class="btn btn-purple btn-sm">↻ Try Again</button>
+    </div>`;
+    console.error("loadWrap error:", e);
   }
 }
 
