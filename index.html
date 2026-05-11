@@ -110,9 +110,11 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
 .home-btn:hover { transform:scale(1.02); }
 .home-btn-picks    { background-color:#ffffff; color:#2d0036; border-color:#c9b3f5; }
 .home-btn-mvq      { background-color:#ff8c42; color:#ffffff; border-color:#ff8c42; }
+.home-btn-rankings { background-color:#00897b; color:#ffffff; border-color:#00897b; }
 .home-btn-chat     { background-color:#e91e8c; color:#ffffff; border-color:#e91e8c; }
-.home-btn-results  { background-color:#9c6fde; color:#ffffff; border-color:#9c6fde; }
 .home-btn-board    { background-color:#ff6b9d; color:#ffffff; border-color:#ff6b9d; background-image:linear-gradient(135deg,#ff6b9d,#9c6fde); }
+.home-btn-wrap     { background-color:#37474f; color:#ffffff; border-color:#37474f; }
+.home-btn-results  { background-color:#9c6fde; color:#ffffff; border-color:#9c6fde; }
 .pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
 .pill { padding:8px 16px; border-radius:20px; border:2px solid #9c6fde; color:#4a148c; background:#e8d8ff; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:14px; transition:all .15s; font-weight:700; }
 .pill:hover { background:#9c6fde; color:#fff; }
@@ -130,8 +132,10 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   <button data-view="picks" onclick="showView('picks')">🗳️ Picks</button>
   <button data-view="results" onclick="showView('results')">📋 Results</button>
   <button data-view="mvq" onclick="showView('mvq')">⭐ MVQ</button>
+  <button data-view="rankings" onclick="showView('rankings')">📊 Queens</button>
   <button data-view="chat" onclick="showView('chat')">💅 Reading Room</button>
   <button data-view="leaderboard" onclick="showView('leaderboard')">🏆 Board</button>
+  <button data-view="wrap" onclick="showView('wrap')">🎬 Wrap</button>
 </nav>
 
 <div class="container">
@@ -146,9 +150,11 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
     </div>
     <button class="home-btn home-btn-picks" onclick="showView('picks')">👀 View My Picks <span style="font-size:13px;font-weight:400;opacity:.7">(locked)</span></button>
     <button class="home-btn home-btn-mvq" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
+    <button class="home-btn home-btn-rankings" onclick="showView('rankings')">📊 Queen Power Rankings</button>
     <button class="home-btn home-btn-chat" onclick="showView('chat')">💅 Reading Room — The Library is Open</button>
-    <button class="home-btn home-btn-results" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <button class="home-btn home-btn-board" onclick="showView('leaderboard')">🏆 Leaderboard</button>
+    <button class="home-btn home-btn-wrap" onclick="showView('wrap')">🎬 Season Wrap</button>
+    <button class="home-btn home-btn-results" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <div class="card" style="margin-top:24px">
       <div style="font-family:'Playfair Display',serif;font-weight:700;margin-bottom:12px">📊 Scoring Guide</div>
       <div class="score-guide">
@@ -321,6 +327,21 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
 
   </div>
 
+  <!-- POWER RANKINGS -->
+
+  <div id="view-rankings" class="view">
+    <h2>📊 Queen Power Rankings</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:20px">How the group rates each queen — ranked by pick popularity and points earned so far.</p>
+    <div id="rankings-content"><div class="spinner"></div></div>
+  </div>
+
+  <!-- SEASON WRAP -->
+
+  <div id="view-wrap" class="view">
+    <h2>🎬 Season Wrap</h2>
+    <div id="wrap-content"><div class="spinner"></div></div>
+  </div>
+
   <!-- LEADERBOARD -->
 
   <div id="view-leaderboard" class="view">
@@ -416,6 +437,8 @@ function showView(id) {
   if (id === "leaderboard") loadLeaderboard();
   if (id === "mvq") loadMvqView();
   if (id === "chat") loadChat();
+  if (id === "rankings") loadRankings();
+  if (id === "wrap") loadWrap();
   if (id === "picks") {
     const banner = document.getElementById("picks-locked-banner");
     if (banner) banner.style.display = PICKS_LOCKED ? "block" : "none";
@@ -431,19 +454,29 @@ function showResultsSection(sec, tabEl) {
 }
 
 async function apiFetch(params) {
-  // Add cache-busting timestamp so Safari never returns a stale response
-  const p = { ...params, _t: Date.now() };
+  // Safari iOS ignores cache:"no-store" for Apps Script URLs.
+  // Using a random nonce (not just timestamp) forces a unique URL every call.
+  const p = { ...params, _cb: Math.random().toString(36).slice(2) + Date.now() };
   const url = API + "?" + new URLSearchParams(p);
-  const r = await fetch(url, { cache: "no-store" });
+  const r = await fetch(url, {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache" }
+  });
   return r.json();
 }
 
 async function apiPost(body) {
-  const params = new URLSearchParams({ action: body.action, _t: Date.now() });
+  const params = new URLSearchParams({
+    action: body.action,
+    _cb: Math.random().toString(36).slice(2) + Date.now()
+  });
   Object.entries(body).forEach(([k,v]) => {
     if (k !== "action") params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
   });
-  const r = await fetch(API + "?" + params.toString(), { cache: "no-store" });
+  const r = await fetch(API + "?" + params.toString(), {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache" }
+  });
   return r.json();
 }
 
@@ -1677,6 +1710,261 @@ async function sendChatMessage() {
     toast("❌ Couldn't send. Check your connection.");
   }
   btn.textContent = "Send 💬"; btn.disabled = false;
+}
+
+// ── POWER RANKINGS ────────────────────────────────────────────────────────────
+async function loadRankings() {
+  const el = document.getElementById("rankings-content");
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const [playersData, resultsData, mvqData] = await Promise.all([
+      apiFetch({ action:"getAll" }),
+      apiFetch({ action:"getResults" }),
+      apiFetch({ action:"getMvq" }),
+    ]);
+
+    const players = playersData.players || [];
+    results = parseResults(resultsData.results || {});
+
+    // For each queen: count how many players picked her, and her total points
+    const queenStats = ALL_QUEENS.map(q => {
+      const pickedBy = players.filter(p => (p.queens || []).includes(q.id));
+      const pickCount = pickedBy.length;
+      const pickPct   = players.length ? Math.round((pickCount / players.length) * 100) : 0;
+      const pts       = calcPts(q.id);
+
+      // MVQ wins for this queen
+      const mvqWins = (mvqData.past || []).filter(v =>
+        (v.winners || []).includes(q.id)
+      ).length;
+
+      // Find bracket
+      const bracket = Object.keys(QUEENS).find(b => QUEENS[b].some(x => x.id === q.id));
+      const r = getR(q.id);
+      const allEps = [...r.episodes, ...r.semiEpisodes];
+      const wins   = allEps.filter(e => e === "win").length;
+      const top2s  = allEps.filter(e => e === "top2").length;
+      const elims  = allEps.filter(e => e === "elim").length;
+      const status = r.finalist ? "👑 Winner" : r.advances ? "⬆️ Semis" : elims > 0 ? "❌ Eliminated" : "🏃 Active";
+
+      return { q, bracket, pickCount, pickPct, pts, mvqWins, wins, top2s, elims, status, pickedBy };
+    });
+
+    // Sort by points desc, then pick count desc
+    queenStats.sort((a,b) => b.pts !== a.pts ? b.pts - a.pts : b.pickCount - a.pickCount);
+
+    const bracketColors = { Pink:"#ff6b9d", Orange:"#ff8c42", Purple:"#9c6fde" };
+    const bracketLight  = { Pink:"#ffd0e8", Orange:"#ffe0c8", Purple:"#e8d8ff" };
+
+    el.innerHTML = queenStats.map((s, i) => {
+      const bc = bracketColors[s.bracket] || "#9c6fde";
+      const bl = bracketLight[s.bracket]  || "#e8d8ff";
+      const pickBar = `<div style="height:8px;background:#f4f4f4;border-radius:8px;overflow:hidden;margin-top:6px">
+        <div style="height:100%;width:${s.pickPct}%;background:${bc};border-radius:8px;transition:width .4s"></div>
+      </div>`;
+
+      const pickerNames = s.pickedBy.map(p => p.player).join(", ");
+
+      return `<div style="background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:12px;
+        box-shadow:0 2px 12px rgba(0,0,0,0.07);border-left:4px solid ${bc}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:${bl};
+              display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:${bc}">
+              ${i+1}
+            </div>
+            <div>
+              <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036">
+                ${s.q.emoji} ${s.q.name}
+              </div>
+              <div style="font-size:12px;color:#aaa">${s.q.season} · ${s.bracket} Bracket</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:22px;color:${bc}">${s.pts}</div>
+            <div style="font-size:11px;color:#bbb">pts</div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          ${s.wins  > 0 ? `<span style="background:#ffd0e8;color:#c2185b;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">🏆 ${s.wins} win${s.wins!==1?"s":""}</span>` : ""}
+          ${s.top2s > 0 ? `<span style="background:#ffe0c8;color:#c94f00;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">🥈 ${s.top2s} top 2${s.top2s!==1?"s":""}</span>` : ""}
+          ${s.mvqWins > 0 ? `<span style="background:#fff3e0;color:#c94f00;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">⭐ ${s.mvqWins} MVQ${s.mvqWins!==1?"s":""}</span>` : ""}
+          <span style="background:#f4f4f4;color:#555;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">${s.status}</span>
+        </div>
+
+        <!-- Pick popularity -->
+        <div style="font-size:12px;color:#888;margin-bottom:3px">
+          Picked by <strong style="color:#2d0036">${s.pickCount} of ${players.length}</strong> players (${s.pickPct}%)
+          ${pickerNames ? `· <span style="color:#9c6fde">${pickerNames}</span>` : ""}
+        </div>
+        ${pickBar}
+      </div>`;
+    }).join("");
+
+    if (!queenStats.length) {
+      el.innerHTML = '<p style="color:#bbb;text-align:center;padding:40px 0">No data yet.</p>';
+    }
+  } catch(e) {
+    el.innerHTML = '<p style="color:#bbb;text-align:center;padding:30px">Couldn\'t load rankings — check your connection.</p>';
+    console.error(e);
+  }
+}
+
+// ── SEASON WRAP ───────────────────────────────────────────────────────────────
+async function loadWrap() {
+  const el = document.getElementById("wrap-content");
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const [playersData, resultsData, mvqData] = await Promise.all([
+      apiFetch({ action:"getAll" }),
+      apiFetch({ action:"getResults" }),
+      apiFetch({ action:"getMvq" }),
+    ]);
+
+    const players = playersData.players || [];
+    results = parseResults(resultsData.results || {});
+    const pastVotes = mvqData.past || [];
+
+    // Check if season is over
+    const winner = ALL_QUEENS.find(q => getR(q.id).finalist);
+    const seasonOver = !!winner;
+
+    // Player scores + MVQ bonuses
+    const mvqBonus = {};
+    pastVotes.forEach(vote => {
+      Object.entries(vote.votes || {}).forEach(([player, qid]) => {
+        if ((vote.winners || []).includes(qid)) {
+          mvqBonus[player] = (mvqBonus[player] || 0) + 2;
+        }
+      });
+    });
+
+    const ranked = players.map(p => ({
+      ...p,
+      queenPts: p.queens.reduce((s, qid) => s + calcPts(qid), 0),
+      mvqPts:   mvqBonus[p.player] || 0,
+      get score() { return this.queenPts + this.mvqPts; }
+    })).sort((a,b) => b.score - a.score);
+
+    // Stats
+    const totalEps   = ALL_QUEENS.flatMap(q => [...getR(q.id).episodes, ...getR(q.id).semiEpisodes]).filter(Boolean).length;
+    const totalWins  = ALL_QUEENS.reduce((s,q) => s + [...getR(q.id).episodes,...getR(q.id).semiEpisodes].filter(e=>e==="win").length, 0);
+    const totalVotes = pastVotes.length;
+
+    // Most picked queen
+    const pickCounts = {};
+    ALL_QUEENS.forEach(q => { pickCounts[q.id] = players.filter(p => (p.queens||[]).includes(q.id)).length; });
+    const mostPickedId = Object.entries(pickCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
+    const mostPicked   = ALL_QUEENS.find(q => q.id === mostPickedId);
+
+    // Most MVQ wins
+    const mvqQueenWins = {};
+    pastVotes.forEach(v => (v.winners||[]).forEach(qid => { mvqQueenWins[qid] = (mvqQueenWins[qid]||0)+1; }));
+    const topMvqId = Object.entries(mvqQueenWins).sort((a,b)=>b[1]-a[1])[0]?.[0];
+    const topMvqQ  = ALL_QUEENS.find(q => q.id === topMvqId);
+
+    // Rank suffix
+    const sfx = r => r===1?"st":r===2?"nd":r===3?"rd":"th";
+    let rank = 1;
+    ranked.forEach((p,i) => {
+      if (i>0 && ranked[i].score < ranked[i-1].score) rank = i+1;
+      p.rank = rank;
+    });
+
+    const seasonBanner = seasonOver
+      ? `<div style="background:linear-gradient(135deg,#ffd700,#ff8c42);border-radius:18px;padding:20px 24px;text-align:center;margin-bottom:24px;box-shadow:0 4px 24px rgba(255,215,0,0.4)">
+          <div style="font-size:48px;margin-bottom:8px">👑</div>
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:22px;color:#2d0036">Season Complete!</div>
+          <div style="font-family:'Playfair Display',serif;font-size:17px;color:#2d0036;margin-top:4px">
+            ${winner.emoji} ${winner.name} wins All Stars 11
+          </div>
+        </div>`
+      : `<div style="background:#e8d8ff;border-radius:18px;padding:16px 20px;text-align:center;margin-bottom:24px;border:2px solid #9c6fde">
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#4a148c">🎬 Season in Progress</div>
+          <div style="font-size:13px;color:#666;margin-top:4px">Final wrap will unlock when the crown is awarded.</div>
+        </div>`;
+
+    // Fun stats section
+    const statsHtml = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+        <div style="background:#fff;border-radius:14px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+          <div style="font-size:28px;font-weight:800;color:#ff6b9d">${totalEps}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">Results Logged</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+          <div style="font-size:28px;font-weight:800;color:#ff8c42">${totalWins}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">Challenge Wins</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+          <div style="font-size:28px;font-weight:800;color:#9c6fde">${totalVotes}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">MVQ Votes Cast</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06)">
+          <div style="font-size:28px;font-weight:800;color:#00897b">${players.length}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">Players</div>
+        </div>
+      </div>`;
+
+    // Group superlatives
+    const superlativesHtml = `
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#2d0036;margin-bottom:12px">🏅 Group Superlatives</div>
+      ${mostPicked ? `
+        <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;color:#888;margin-bottom:2px">👑 Most Picked Queen</div>
+            <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036">${mostPicked.emoji} ${mostPicked.name}</div>
+          </div>
+          <div style="font-weight:800;color:#ff6b9d;font-size:18px">${pickCounts[mostPickedId]}/${players.length}</div>
+        </div>` : ""}
+      ${topMvqQ ? `
+        <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;color:#888;margin-bottom:2px">⭐ Fan Favorite (MVQ Wins)</div>
+            <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036">${topMvqQ.emoji} ${topMvqQ.name}</div>
+          </div>
+          <div style="font-weight:800;color:#ff8c42;font-size:18px">${mvqQueenWins[topMvqId]}x</div>
+        </div>` : ""}
+    `;
+
+    // Final standings
+    const standingsHtml = `
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#2d0036;margin:20px 0 12px">🏆 Final Standings</div>
+      ${ranked.map((p, i) => {
+        const medal = p.rank===1?"🥇":p.rank===2?"🥈":p.rank===3?"🥉":"";
+        const isTied = ranked.filter(x=>x.score===p.score).length > 1;
+        const bestQueen = p.queens.map(qid => ({ qid, pts: calcPts(qid) })).sort((a,b)=>b.pts-a.pts)[0];
+        const bq = bestQueen ? ALL_QUEENS.find(q=>q.id===bestQueen.qid) : null;
+        return `<div style="background:#fff;border-radius:16px;padding:14px 18px;margin-bottom:10px;
+          box-shadow:${p.rank===1?"0 4px 24px rgba(156,111,222,0.2)":"0 2px 10px rgba(0,0,0,0.06)"};
+          border:2px solid ${p.rank===1?"#9c6fde":"#f0eaff"}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:24px">${medal||p.rank}</div>
+              <div>
+                <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036">${p.player}</div>
+                <div style="font-size:12px;color:#aaa">${p.rank}${sfx(p.rank)} place${isTied?" 🤝":""}</div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:24px;color:#9c6fde">${p.score}</div>
+              <div style="font-size:11px;color:#bbb">pts total</div>
+            </div>
+          </div>
+          ${bq ? `<div style="margin-top:8px;font-size:12px;color:#888">
+            Best pick: <strong style="color:#2d0036">${bq.emoji} ${bq.name}</strong> (+${bestQueen.pts} pts)
+            ${p.mvqPts > 0 ? `· MVQ bonus: <strong style="color:#c94f00">+${p.mvqPts}</strong>` : ""}
+          </div>` : ""}
+        </div>`;
+      }).join("")}`;
+
+    el.innerHTML = seasonBanner + statsHtml + superlativesHtml + standingsHtml;
+
+  } catch(e) {
+    el.innerHTML = '<p style="color:#bbb;text-align:center;padding:30px">Couldn\'t load wrap — check your connection.</p>';
+    console.error(e);
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
