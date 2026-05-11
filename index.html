@@ -130,7 +130,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   <button data-view="picks" onclick="showView('picks')">🗳️ Picks</button>
   <button data-view="results" onclick="showView('results')">📋 Results</button>
   <button data-view="mvq" onclick="showView('mvq')">⭐ MVQ</button>
-  <button data-view="chat" onclick="showView('chat')">💬 Chat</button>
+  <button data-view="chat" onclick="showView('chat')">💅 Reading Room</button>
   <button data-view="leaderboard" onclick="showView('leaderboard')">🏆 Board</button>
 </nav>
 
@@ -146,7 +146,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
     </div>
     <button class="home-btn home-btn-picks" onclick="showView('picks')">👀 View My Picks <span style="font-size:13px;font-weight:400;opacity:.7">(locked)</span></button>
     <button class="home-btn home-btn-mvq" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
-    <button class="home-btn home-btn-chat" onclick="showView('chat')">💬 Smack Talk</button>
+    <button class="home-btn home-btn-chat" onclick="showView('chat')">💅 Reading Room — The Library is Open</button>
     <button class="home-btn home-btn-results" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <button class="home-btn home-btn-board" onclick="showView('leaderboard')">🏆 Leaderboard</button>
     <div class="card" style="margin-top:24px">
@@ -279,7 +279,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   <!-- CHAT -->
 
   <div id="view-chat" class="view">
-    <h2>💬 Smack Talk</h2>
+    <h2>💅 Reading Room</h2>
 
 ```
 <!-- Message composer -->
@@ -301,7 +301,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
       <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036" id="chat-sending-as"></span>
       <button style="background:none;border:none;cursor:pointer;color:#bbb;font-size:13px" onclick="resetChatPlayer()">← Change</button>
     </div>
-    <textarea id="chat-message-input" placeholder="Talk your smack… 👑💅"
+    <textarea id="chat-message-input" placeholder="The library is open — read your friends, spill the T, give us the drama… 💅"
       style="width:100%;padding:12px 14px;border-radius:12px;border:2px solid #c8b0f0;font-family:Georgia,serif;font-size:15px;resize:none;outline:none;min-height:80px;color:#2d0036;background:#fff"
       onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')sendChatMessage()"></textarea>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
@@ -431,17 +431,19 @@ function showResultsSection(sec, tabEl) {
 }
 
 async function apiFetch(params) {
-  const url = API + "?" + new URLSearchParams(params);
-  const r = await fetch(url);
+  // Add cache-busting timestamp so Safari never returns a stale response
+  const p = { ...params, _t: Date.now() };
+  const url = API + "?" + new URLSearchParams(p);
+  const r = await fetch(url, { cache: "no-store" });
   return r.json();
 }
 
 async function apiPost(body) {
-  const params = new URLSearchParams({ action: body.action });
+  const params = new URLSearchParams({ action: body.action, _t: Date.now() });
   Object.entries(body).forEach(([k,v]) => {
     if (k !== "action") params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
   });
-  const r = await fetch(API + "?" + params.toString());
+  const r = await fetch(API + "?" + params.toString(), { cache: "no-store" });
   return r.json();
 }
 
@@ -1571,8 +1573,8 @@ async function loadChat() {
     const messages = data.messages || [];
     if (!messages.length) {
       feed.innerHTML = `<div style="text-align:center;padding:40px 0;color:#bbb">
-        <div style="font-size:40px;margin-bottom:12px">💬</div>
-        <div style="font-size:15px">No messages yet — be the first to talk smack!</div>
+        <div style="font-size:40px;margin-bottom:12px">💅</div>
+        <div style="font-size:15px">The library is empty — be the first to open the books!</div>
       </div>`;
       return;
     }
