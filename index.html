@@ -1161,17 +1161,26 @@ async function loadMvqView() {
     }
 
     // Merge: use Sheet's votedPlayers/voteCount for display, local votes for submit logic
-    mvqOpenVotes = scheduledOpen
-      .filter(ep => !closedEps.has(ep.episode))
-      .map(ep => {
-        const sheetVote = sheetOpen.find(v => v.episode === ep.episode);
-        const local = localVotes[ep.episode] || {};
+    // Include scheduled open AND any Sheet votes still marked open (expired but not yet closed)
+    const allOpenEpisodes = new Set([
+      ...scheduledOpen.map(ep => ep.episode),
+      ...sheetOpen.map(v => v.episode)
+    ]);
+
+    mvqOpenVotes = [...allOpenEpisodes]
+      .filter(epName => !closedEps.has(epName))
+      .map(epName => {
+        const sched     = MVQ_SCHEDULE.find(s => s.episode === epName);
+        const sheetVote = sheetOpen.find(v => v.episode === epName);
+        const local     = localVotes[epName] || {};
+        const isExpired = sched ? new Date() > new Date(sched.closeUTC) : false;
         return {
-          episode:      ep.episode,
-          deadline:     getDeadlineFromClose(ep.closeUTC),
-          votes:        local,   // local picks only (for submit/display of own vote)
+          episode:      epName,
+          deadline:     sched ? getDeadlineFromClose(sched.closeUTC) : (sheetVote?.deadline || ""),
+          votes:        local,
           votedPlayers: sheetVote?.votedPlayers || Object.keys(local),
           voteCount:    sheetVote?.voteCount    ?? Object.keys(local).length,
+          isExpired,   // flag so we can show "deadline passed" label
         };
       });
   } catch(e) {
@@ -1205,41 +1214,59 @@ function renderMvqOpen() {
   const total = allPlayers.length || "?";
 
   openDiv.innerHTML = mvqOpenVotes.map((vote, vi) => {
-    const votes       = vote.votes || {};          // local picks only
+    const votes       = vote.votes || {};
     const votedNames  = vote.votedPlayers || Object.keys(votes);
     const voteCount   = vote.voteCount   ?? votedNames.length;
+    const isExpired   = vote.isExpired;
+    const borderColor = isExpired ? "#888" : "#ff8c42";
 
-    return `<div style="background:#fff;border:3px solid #ff8c42;border-radius:18px;padding:18px 20px;margin-bottom:20px" id="mvq-vote-card-${vi}">
+    const statusBadge = isExpired
+      ? `<span style="background:#888;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">⏰ Awaiting Close</span>`
+      : `<span style="background:#ff8c42;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">🗳️ VOTE OPEN</span>`;
+
+    const countSection = isExpired
+      ? `<div style="background:#f4f4f4;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#555;font-weight:700">
+           ⏰ Voting window closed — ${voteCount} of ${total} players voted.<br>
+           <span style="font-weight:400;color:#888">Admin: scroll down, enter password, and tap Close to reveal results.</span>
+         </div>`
+      : `<div id="mvq-count-${vi}" style="background:#ffe0c8;border-radius:10px;padding:8px 14px;margin-bottom:6px;font-size:13px;color:#c94f00;font-weight:700">
+           ${voteCount} of ${total} players have voted — results hidden until admin closes
+         </div>
+         <button onclick="refreshMvqCount(${vi},'${vote.episode}')" style="background:none;border:none;color:#9c6fde;font-size:12px;cursor:pointer;font-weight:700;margin-bottom:12px;padding:2px 0">
+           ↻ Refresh count
+         </button>
+         <div style="background:#f4f4f4;border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:#888">
+           💡 Each person votes on their own device. Tap "Refresh count" to see the latest tally.
+         </div>`;
+
+    const voteSection = isExpired
+      ? "" // don't show voting UI for expired votes
+      : `<div id="mvq-player-select-${vi}">
+           <p style="color:#555;font-size:14px;font-weight:700;margin-bottom:10px">👇 Tap your name to vote:</p>
+           <div class="pill-row" style="gap:10px">
+             ${(allPlayers.length ? allPlayers : []).map(p => {
+               const hasVoted = votedNames.includes(p.player);
+               return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
+                 background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
+                 cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
+                 onclick="selectMvqPlayer(${vi},'${p.player}')">
+                 ${p.player}${hasVoted?" ✓":""}
+               </div>`;
+             }).join("") || '<p style="color:#bbb;font-size:13px">No players yet.</p>'}
+           </div>
+         </div>`;
+
+    return `<div style="background:#fff;border:3px solid ${borderColor};border-radius:18px;padding:18px 20px;margin-bottom:20px" id="mvq-vote-card-${vi}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:#2d0036">⭐ ${vote.episode}</div>
-        <span style="background:#ff8c42;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">🗳️ VOTE OPEN</span>
+        ${statusBadge}
       </div>
-      <div style="color:#555;font-size:13px;margin-bottom:4px">🗓️ Closes: ${vote.deadline}</div>
-      <div id="mvq-count-${vi}" style="background:#ffe0c8;border-radius:10px;padding:8px 14px;margin-bottom:6px;font-size:13px;color:#c94f00;font-weight:700">
-        ${voteCount} of ${total} players have voted — results hidden until admin closes
-      </div>
-      <button onclick="refreshMvqCount(${vi},'${vote.episode}')" style="background:none;border:none;color:#9c6fde;font-size:12px;cursor:pointer;font-weight:700;margin-bottom:12px;padding:2px 0">
-        ↻ Refresh count
-      </button>
-      <div style="background:#f4f4f4;border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:#888">
-        💡 Each person votes on their own device. Tap "Refresh count" to see the latest tally.
-      </div>
+      <div style="color:#555;font-size:13px;margin-bottom:10px">🗓️ Deadline: ${vote.deadline}</div>
+      ${countSection}
+      ${voteSection}
 
-      <div id="mvq-player-select-${vi}">
-        <p style="color:#555;font-size:14px;font-weight:700;margin-bottom:10px">👇 Tap your name to vote:</p>
-        <div class="pill-row" style="gap:10px">
-          ${(allPlayers.length ? allPlayers : []).map(p => {
-            const hasVoted = votedNames.includes(p.player);
-            return `<div style="padding:10px 18px;border-radius:20px;border:2px solid ${hasVoted?"#ff8c42":"#9c6fde"};
-              background:${hasVoted?"#ff8c42":"#e8d8ff"};color:${hasVoted?"#fff":"#4a148c"};
-              cursor:pointer;font-family:'Playfair Display',serif;font-size:15px;font-weight:700"
-              onclick="selectMvqPlayer(${vi},'${p.player}')">
-              ${p.player}${hasVoted?" ✓":""}
-            </div>`;
-          }).join("") || '<p style="color:#bbb;font-size:13px">No players yet — add players in the Picks tab first.</p>'}
-        </div>
-      </div>
-
+      ${voteSection}
+      ${isExpired ? "" : `
       <div id="mvq-picker-${vi}" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036" id="mvq-voting-as-${vi}"></div>
@@ -1250,7 +1277,7 @@ function renderMvqOpen() {
         <button style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#ff6b9d,#9c6fde);color:#fff;cursor:pointer;font-family:'Playfair Display',serif;font-size:16px;font-weight:700"
           onclick="submitMvqVote(${vi},'${vote.episode}')" id="mvq-submit-${vi}" disabled>Submit Vote</button>
         <div id="mvq-feedback-${vi}" style="display:none;text-align:center;margin-top:10px;color:#9c6fde;font-size:14px;font-weight:700"></div>
-      </div>
+      </div>`}
     </div>`;
   }).join("");
 }
