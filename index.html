@@ -1540,50 +1540,73 @@ function renderMvqAdminActions() {
 async function closeMvqVote(episode) {
   const vote = mvqOpenVotes.find(v => v.episode === episode);
   if (!vote) return;
-  if (!confirm(`Close the vote for "${episode}" and reveal results?\n\nMake sure everyone has submitted their vote first — results cannot be changed after closing.`)) return;
+  if (!confirm(`Close the vote for "${episode}" and reveal results?\n\nMake sure everyone has submitted their vote first.`)) return;
 
-  // Gather all votes: merge localStorage (this device) with in-memory votes
-  const localVotes = loadLocalMvqVotes();
-  const allVotes = { ...(localVotes[episode] || {}), ...(vote.votes || {}) };
+  // Show loading state on the button
+  const closeBtn = document.querySelector(`button[onclick="closeMvqVote('${episode}')"]`);
+  if (closeBtn) { closeBtn.textContent = "⏳ Closing…"; closeBtn.disabled = true; }
 
-  const tally = {};
-  Object.values(allVotes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
-  const maxVotes = Math.max(...Object.values(tally), 0);
-  const winners  = maxVotes > 0 ? Object.keys(tally).filter(qid => tally[qid] === maxVotes) : [];
-  const bonusPlayers = Object.entries(allVotes)
-    .filter(([,qid]) => winners.includes(qid))
-    .map(([player]) => player);
+  try {
+    // Step 1: Fetch the FULL votes from the Sheet (the source of truth)
+    // We need a special admin fetch that returns full vote picks, not just names
+    const fullData = await apiFetch({ action:"getMvqAdmin", episode });
 
-  // Try Sheet sync but don't block
-  apiPost({ action:"closeMvqVote", episode, winners:JSON.stringify(winners), bonusPlayers:JSON.stringify(bonusPlayers), votes:JSON.stringify(allVotes) }).catch(()=>{});
+    let allVotes = {};
+    if (fullData && fullData.votes) {
+      allVotes = fullData.votes;
+    }
 
-  // Save closed vote to localStorage so it persists
-  const closedVote = {
-    episode,
-    deadline: vote.deadline,
-    votes: allVotes,
-    winners,
-    bonusPlayers,
-    closed: true
-  };
-  const allLocal = loadLocalMvqVotes();
-  allLocal[`__closed__${episode}`] = closedVote;
-  saveLocalMvqVotes(allLocal);
+    // Merge with any local votes in case Sheet is missing some
+    const localVotes = loadLocalMvqVotes()[episode] || {};
+    allVotes = { ...localVotes, ...allVotes }; // Sheet wins on conflict
 
-  // Remove from open votes
-  mvqOpenVotes = mvqOpenVotes.filter(v => v.episode !== episode);
+    if (!Object.keys(allVotes).length) {
+      toast("⚠️ No votes found — make sure players have submitted before closing.");
+      if (closeBtn) { closeBtn.textContent = `🔒 Close "${episode}" Vote & Reveal Results`; closeBtn.disabled = false; }
+      return;
+    }
 
-  // Add to past votes
-  mvqPastVotes = [closedVote, ...mvqPastVotes];
+    // Step 2: Calculate winners
+    const tally = {};
+    Object.values(allVotes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
+    const maxVotes   = Math.max(...Object.values(tally), 0);
+    const winners    = maxVotes > 0 ? Object.keys(tally).filter(qid => tally[qid] === maxVotes) : [];
+    const bonusPlayers = Object.entries(allVotes)
+      .filter(([,qid]) => winners.includes(qid))
+      .map(([player]) => player);
 
-  // Show dramatic reveal
-  showMvqReveal(closedVote);
+    // Step 3: Save closed state to Sheet
+    const res = await apiPost({ action:"closeMvqVote", episode, winners:JSON.stringify(winners), bonusPlayers:JSON.stringify(bonusPlayers), votes:JSON.stringify(allVotes) });
 
-  renderMvqOpen();
-  renderMvqPast();
-  renderMvqAdminActions();
-  toast(`✅ "${episode}" closed! ${bonusPlayers.length} player(s) earned +2 pts.`);
+    if (!res.success && !res.error?.includes("not found")) {
+      toast("❌ Error closing vote in Sheet. Try again.");
+      if (closeBtn) { closeBtn.textContent = `🔒 Close "${episode}" Vote & Reveal Results`; closeBtn.disabled = false; }
+      return;
+    }
+
+    // Step 4: Save to localStorage for this device
+    const closedVote = { episode, deadline:vote.deadline, votes:allVotes, winners, bonusPlayers, closed:true };
+    const allLocal = loadLocalMvqVotes();
+    allLocal[`__closed__${episode}`] = closedVote;
+    saveLocalMvqVotes(allLocal);
+
+    // Step 5: Update in-memory state
+    mvqOpenVotes = mvqOpenVotes.filter(v => v.episode !== episode);
+    mvqPastVotes = [closedVote, ...mvqPastVotes];
+
+    // Step 6: Show results
+    showMvqReveal(closedVote);
+    renderMvqOpen();
+    renderMvqPast();
+    renderMvqAdminActions();
+    toast(`✅ "${episode}" closed! ${bonusPlayers.length} player(s) earned +2 pts.`);
+
+  } catch(e) {
+    toast("❌ Error closing vote: " + (e.message || e.toString()));
+    if (closeBtn) { closeBtn.textContent = `🔒 Close "${episode}" Vote & Reveal Results`; closeBtn.disabled = false; }
+  }
 }
+
 
 function showMvqReveal(vote) {
   const votes   = vote.votes || {};
