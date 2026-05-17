@@ -484,6 +484,8 @@ const BC = {
 const BEP = { Pink:["Ep 1","Ep 2","Ep 3"], Orange:["Ep 4","Ep 5","Ep 6"], Purple:["Ep 7","Ep 8","Ep 9"] };
 const SEP = ["Ep 10","Ep 11"];
 
+// Episode result options — win/top2 are mutually exclusive performance results
+// elim is independent (a queen can win a lip sync but still be eliminated in AS format)
 const EP_OPTS = [
   { key:"win",  label:"🏆 Win",   pts:5, color:"#ff6b9d" },
   { key:"top2", label:"🥈 Top 2", pts:3, color:"#ff8c42" },
@@ -562,12 +564,35 @@ function getR(qid) {
   };
 }
 
+function getR(qid) {
+  const r = results[qid];
+  if (!r) return {
+    episodes:     [{},{},{} ],
+    semiEpisodes: [{},{}    ],
+    advances: false, finalist: false, comeback: false,
+  };
+  // Migrate old string-based episodes to object format
+  const migrateEp = ep => {
+    if (!ep || typeof ep === "object") return ep || {};
+    // Old format was a single string like "win", "top2" etc
+    return { [ep]: true };
+  };
+  return {
+    episodes:     (r.episodes     || [{},{},{}]).map(migrateEp),
+    semiEpisodes: (r.semiEpisodes || [{},{}   ]).map(migrateEp),
+    advances:  r.advances  || false,
+    finalist:  r.finalist  || false,
+    comeback:  r.comeback  || false,
+  };
+}
+
 function calcPts(qid) {
   const r = getR(qid);
   let pts = 0;
   [...r.episodes, ...r.semiEpisodes].forEach(ep => {
-    const o = EP_OPTS.find(x => x.key === ep);
-    if (o) pts += o.pts;
+    EP_OPTS.forEach(o => {
+      if (ep[o.key]) pts += o.pts;
+    });
   });
   if (r.advances) pts += 10;
   if (r.finalist) pts += 25;
@@ -705,34 +730,28 @@ function unlockAdmin() {
 //   3. The whole value is a JSON string (Apps Script sometimes stringifies) — parse first
 function parseResults(raw) {
   const out = {};
-  // Sometimes Apps Script returns the entire results as a single JSON string
   if (typeof raw === "string") {
     try { raw = JSON.parse(raw); } catch { return out; }
   }
   Object.keys(raw).forEach(qid => {
     let r = raw[qid];
-    // If the individual queen entry is a string, parse it
-    if (typeof r === "string") {
-      try { r = JSON.parse(r); } catch { return; }
-    }
+    if (typeof r === "string") { try { r = JSON.parse(r); } catch { return; } }
     if (!r || typeof r !== "object") return;
-    if (Array.isArray(r.episodes)) {
-      // New format — normalise nulls (JSON doesn't distinguish null vs missing)
-      out[qid] = {
-        episodes:     r.episodes.map(v => v || null),
-        semiEpisodes: (r.semiEpisodes || [null, null]).map(v => v || null),
-        advances:     !!r.advances,
-        finalist:     !!r.finalist,
-      };
-    } else {
-      // Old flat boolean format — put result in ep slot 0
-      out[qid] = {
-        episodes: [r.win?"win":r.top2?"top2":r.safe?"safe":r.elim?"elim":null, null, null],
-        semiEpisodes: [null, null],
-        advances: !!r.advances,
-        finalist: !!r.finalist,
-      };
-    }
+
+    const migrateEp = ep => {
+      if (!ep) return {};
+      if (typeof ep === "object" && !Array.isArray(ep)) return ep;
+      if (typeof ep === "string") return { [ep]: true };
+      return {};
+    };
+
+    out[qid] = {
+      episodes:     Array.isArray(r.episodes)     ? r.episodes.map(migrateEp)     : [{},{},{}],
+      semiEpisodes: Array.isArray(r.semiEpisodes) ? r.semiEpisodes.map(migrateEp) : [{},{}],
+      advances:  !!r.advances,
+      finalist:  !!r.finalist,
+      comeback:  !!r.comeback,
+    };
   });
   return out;
 }
@@ -764,10 +783,13 @@ function renderResultsBrackets() {
           <span style="font-weight:700;color:var(--purple);font-size:13px" id="pts-${q.id}">${calcPts(q.id)} pts</span>
         </div>
         ${buildEpGrid(q.id, r.episodes, epLabels, false)}
-        <div style="border-top:1px solid var(--purple-light);padding-top:10px;margin-top:4px">
+        <div style="border-top:1px solid #e8d8ff;padding-top:10px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">
           <div class="tag" id="adv-${q.id}"
-            style="display:inline-block;border-color:${r.advances?"var(--purple)":"#eee"};background:${r.advances?"var(--purple-light)":"transparent"};color:${r.advances?"var(--purple)":"#bbb"}"
+            style="display:inline-block;border-color:${r.advances?"#9c6fde":"#eee"};background:${r.advances?"#e8d8ff":"transparent"};color:${r.advances?"#9c6fde":"#bbb"}"
             onclick="toggleAdvances('${q.id}')">⬆️ Advances to Semis (+10)</div>
+          <div class="tag" id="comeback-${q.id}"
+            style="display:inline-block;border-color:${r.comeback?"#00897b":"#eee"};background:${r.comeback?"#e0f2f1":"transparent"};color:${r.comeback?"#00897b":"#bbb"}"
+            onclick="toggleComeback('${q.id}')">🔄 Comeback Queen</div>
         </div>
       </div>`;
     });
@@ -837,10 +859,10 @@ function buildEpGrid(qid, epArr, labels, isSemi) {
   const gridId = isSemi ? `semi-grid-${qid}` : `grid-${qid}`;
   let html = `<div class="ep-grid" style="grid-template-columns:repeat(${labels.length},1fr)" id="${gridId}">`;
   labels.forEach((lbl, i) => {
-    const cur = epArr[i];
+    const cur = epArr[i] || {};  // object: { win: bool, elim: bool, ... }
     html += `<div class="ep-col"><div class="ep-label">${lbl}</div>`;
     EP_OPTS.forEach(o => {
-      const on = cur === o.key;
+      const on = !!cur[o.key];
       html += `<button class="ep-btn${on?" on":""}" id="epbtn-${qid}-${isSemi?"s":"b"}-${i}-${o.key}"
         style="${on?`border-color:${o.color};background:${o.color}`:""}"
         onclick="setEp('${qid}',${i},'${o.key}',${isSemi})">
@@ -853,20 +875,35 @@ function buildEpGrid(qid, epArr, labels, isSemi) {
   return html;
 }
 
-function setEp(qid, idx, val, isSemi) {
-  const r = getR(qid);
-  const key = isSemi ? "semiEpisodes" : "episodes";
-  const arr = [...r[key]];
-  arr[idx] = arr[idx] === val ? null : val;
-  if (!results[qid]) results[qid] = { episodes:[null,null,null], semiEpisodes:[null,null], advances:false, finalist:false };
-  results[qid][key] = arr;
+function setEp(qid, idx, key, isSemi) {
+  if (!results[qid]) results[qid] = {
+    episodes:[{},{},{}], semiEpisodes:[{},{}], advances:false, finalist:false, comeback:false
+  };
+  const epKey = isSemi ? "semiEpisodes" : "episodes";
+  const arr = [...(results[qid][epKey] || [])];
+  while (arr.length < (isSemi ? 2 : 3)) arr.push({});
+  const cur = { ...(arr[idx] || {}) };
 
-  // Re-render just the affected grid
-  const epArr = isSemi ? results[qid].semiEpisodes : results[qid].episodes;
+  // win/top2/safe are mutually exclusive performance results
+  // elim is independent — can coexist with win (AS format: win lip sync but still go home)
+  if (key === "elim") {
+    cur.elim = !cur.elim; // just toggle
+  } else {
+    // Toggle the clicked key; clear other performance keys if turning ON
+    const wasOn = !!cur[key];
+    if (!wasOn) { delete cur.win; delete cur.top2; delete cur.safe; }
+    cur[key] = wasOn ? undefined : true;
+    if (cur[key] === undefined) delete cur[key];
+  }
+
+  arr[idx] = cur;
+  results[qid][epKey] = arr;
+
+  // Re-render grid
   const labels = isSemi ? SEP : Object.entries(BEP).find(([b]) => QUEENS[b].some(q => q.id === qid))?.[1] || [];
   const gridId = isSemi ? `semi-grid-${qid}` : `grid-${qid}`;
   const el = document.getElementById(gridId);
-  if (el) el.outerHTML = buildEpGrid(qid, epArr, labels, isSemi);
+  if (el) el.outerHTML = buildEpGrid(qid, arr, labels, isSemi);
 
   // Update pts display
   const ptsEl = document.getElementById(isSemi ? `pts-semi-${qid}` : `pts-${qid}`);
@@ -884,6 +921,16 @@ function toggleAdvances(qid) {
   // Re-render semis and finale sections since advancing queens change
   renderResultsSemis();
   renderResultsFinale();
+}
+
+function toggleComeback(qid) {
+  if (!results[qid]) results[qid] = { episodes:[{},{},{}], semiEpisodes:[{},{}], advances:false, finalist:false, comeback:false };
+  results[qid].comeback = !results[qid].comeback;
+  const el = document.getElementById(`comeback-${qid}`);
+  const on = results[qid].comeback;
+  el.style.borderColor = on ? "#00897b" : "#eee";
+  el.style.background  = on ? "#e0f2f1" : "transparent";
+  el.style.color       = on ? "#00897b" : "#bbb";
 }
 
 function toggleFinalist(qid) {
@@ -1123,10 +1170,13 @@ async function loadMvqView() {
   const scheduledOpen = getMvqCurrentlyOpen();
   const localVotes = loadLocalMvqVotes();
 
-  // Immediately show schedule-based placeholders so UI is never blank
-  if (scheduledOpen.length) {
+  // Immediately show schedule-based placeholders — deduplicated by episode name
+  const uniqueScheduled = scheduledOpen.filter((ep, i, arr) =>
+    arr.findIndex(x => x.episode === ep.episode) === i
+  );
+  if (uniqueScheduled.length) {
     noOpen.style.display = "none";
-    openDiv.innerHTML = scheduledOpen.map((ep, vi) =>
+    openDiv.innerHTML = uniqueScheduled.map((ep, vi) =>
       `<div style="background:#fff;border:3px solid #ff8c42;border-radius:18px;padding:18px 20px;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:#2d0036">⭐ ${ep.episode}</div>
@@ -1139,11 +1189,15 @@ async function loadMvqView() {
   }
 
   // Build open votes from schedule + local votes (works even without Sheet)
-  mvqOpenVotes = scheduledOpen.map(ep => ({
-    episode:  ep.episode,
-    deadline: getDeadlineFromClose(ep.closeUTC),
-    votes:    localVotes[ep.episode] || {}
-  }));
+  // Deduplicate by episode name in case schedule has the same ep twice (e.g. double premiere)
+  const seenEps = new Set();
+  mvqOpenVotes = scheduledOpen
+    .filter(ep => { if (seenEps.has(ep.episode)) return false; seenEps.add(ep.episode); return true; })
+    .map(ep => ({
+      episode:  ep.episode,
+      deadline: getDeadlineFromClose(ep.closeUTC),
+      votes:    localVotes[ep.episode] || {}
+    }));
 
   // Try to sync with Sheet, but don't block the UI
   try {
@@ -1167,22 +1221,47 @@ async function loadMvqView() {
       ...sheetOpen.map(v => v.episode)
     ]);
 
-    mvqOpenVotes = [...allOpenEpisodes]
-      .filter(epName => !closedEps.has(epName))
-      .map(epName => {
-        const sched     = MVQ_SCHEDULE.find(s => s.episode === epName);
-        const sheetVote = sheetOpen.find(v => v.episode === epName);
-        const local     = localVotes[epName] || {};
-        const isExpired = sched ? new Date() > new Date(sched.closeUTC) : false;
-        return {
-          episode:      epName,
-          deadline:     sched ? getDeadlineFromClose(sched.closeUTC) : (sheetVote?.deadline || ""),
-          votes:        local,
-          votedPlayers: sheetVote?.votedPlayers || Object.keys(local),
-          voteCount:    sheetVote?.voteCount    ?? Object.keys(local).length,
-          isExpired,   // flag so we can show "deadline passed" label
-        };
-      });
+    // For regular players: ONLY show episodes in the current schedule window
+    // For admins: also show expired-unclosed Sheet votes so they can close them
+    if (mvqAdminUnlocked) {
+      // Admin sees everything open in Sheet that isn't closed yet
+      const allOpenEps = new Set([
+        ...scheduledOpen.map(ep => ep.episode),
+        ...sheetOpen.map(v => v.episode)
+      ]);
+      mvqOpenVotes = [...allOpenEps]
+        .filter(epName => !closedEps.has(epName))
+        .map(epName => {
+          const sched     = MVQ_SCHEDULE.find(s => s.episode === epName);
+          const sheetVote = sheetOpen.find(v => v.episode === epName);
+          const local     = localVotes[epName] || {};
+          const isExpired = sched ? new Date() > new Date(sched.closeUTC) : false;
+          return {
+            episode:      epName,
+            deadline:     sched ? getDeadlineFromClose(sched.closeUTC) : (sheetVote?.deadline || ""),
+            votes:        local,
+            votedPlayers: sheetVote?.votedPlayers || Object.keys(local),
+            voteCount:    sheetVote?.voteCount    ?? Object.keys(local).length,
+            isExpired,
+          };
+        });
+    } else {
+      // Players only see episodes currently within their scheduled window
+      mvqOpenVotes = scheduledOpen
+        .filter(ep => !closedEps.has(ep.episode))
+        .map(ep => {
+          const sheetVote = sheetOpen.find(v => v.episode === ep.episode);
+          const local     = localVotes[ep.episode] || {};
+          return {
+            episode:      ep.episode,
+            deadline:     getDeadlineFromClose(ep.closeUTC),
+            votes:        local,
+            votedPlayers: sheetVote?.votedPlayers || Object.keys(local),
+            voteCount:    sheetVote?.voteCount    ?? Object.keys(local).length,
+            isExpired:    false,
+          };
+        });
+    }
   } catch(e) {
     console.warn("Sheet sync failed, using local votes only:", e);
     // mvqOpenVotes already set from local above — just keep it
@@ -1263,8 +1342,6 @@ function renderMvqOpen() {
       </div>
       <div style="color:#555;font-size:13px;margin-bottom:10px">🗓️ Deadline: ${vote.deadline}</div>
       ${countSection}
-      ${voteSection}
-
       ${voteSection}
       ${isExpired ? "" : `
       <div id="mvq-picker-${vi}" style="display:none">
