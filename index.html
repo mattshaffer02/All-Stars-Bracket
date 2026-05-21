@@ -1037,12 +1037,12 @@ async function loadLeaderboard() {
         const qPts = calcPts(id);
         const reasons = [];
         allEps.forEach(ep => {
-          if (ep === "win")  reasons.push("🏆 Win");
-          if (ep === "top2") reasons.push("🥈 Top 2");
+          if (ep && ep.win)  reasons.push("🏆 Win");
+          if (ep && ep.top2) reasons.push("🥈 Top 2");
         });
         if (r.advances) reasons.push("⬆️ Semis");
         if (r.finalist) reasons.push("👑 Winner");
-        const badge = r.finalist?"👑":r.advances?"⬆️":allEps.includes("win")?"🏆":allEps.includes("top2")?"🥈":allEps.includes("elim")?"❌":"";
+        const badge = r.finalist?"👑":r.advances?"⬆️":allEps.some(e=>e?.win)?"🏆":allEps.some(e=>e?.top2)?"🥈":allEps.some(e=>e?.elim)?"❌":"";
         const reasonStr = reasons.length ? reasons.join(", ") : "No points yet";
         const bkt = queenBracket[id] || "Purple";
         return `<div style="display:flex;justify-content:space-between;align-items:center;
@@ -1995,10 +1995,16 @@ async function loadRankings() {
       const bracket = Object.keys(QUEENS).find(b => QUEENS[b].some(x => x.id === q.id));
       const r = getR(q.id);
       const allEps = [...r.episodes, ...r.semiEpisodes];
-      const wins   = allEps.filter(e => e === "win").length;
-      const top2s  = allEps.filter(e => e === "top2").length;
-      const elims  = allEps.filter(e => e === "elim").length;
-      const status = r.finalist ? "👑 Winner" : r.advances ? "⬆️ Semis" : elims > 0 ? "❌ Eliminated" : "🏃 Active";
+      const wins   = allEps.filter(e => e && e.win).length;
+      const top2s  = allEps.filter(e => e && e.top2).length;
+      const elims  = allEps.filter(e => e && e.elim).length;
+      const isEliminated = elims > 0 && !r.advances && !r.finalist && !r.comeback;
+      const status = r.finalist  ? "👑 Winner"
+                   : r.advances  ? "⬆️ Semis"
+                   : r.comeback  ? "🔄 Comeback"
+                   : isEliminated ? "❌ Eliminated"
+                   : wins > 0 || top2s > 0 ? "🔥 Competing"
+                   : "🏃 Active";
 
       return { q, bracket, pickCount, pickPct, pts, mvqWins, wins, top2s, elims, status, pickedBy };
     });
