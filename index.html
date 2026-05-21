@@ -1619,26 +1619,48 @@ async function openMvqVote() {
   }
 }
 
-function unlockMvqAdmin() {
+async function unlockMvqAdmin() {
   const pw = document.getElementById("mvq-admin-pw").value;
   if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
   mvqAdminUnlocked = true;
-  document.getElementById("mvq-admin-locked").style.display = "none";
-  document.getElementById("mvq-admin-panel").style.display  = "block";
+
+  // Reload MVQ data with admin flag set — expired votes will now be included
+  await loadMvqView();
+
+  // Restore admin panel visibility (loadMvqView may re-render the section)
+  const locked = document.getElementById("mvq-admin-locked");
+  const panel  = document.getElementById("mvq-admin-panel");
+  if (locked) locked.style.display = "none";
+  if (panel)  panel.style.display  = "block";
+
   renderMvqAdminActions();
+
+  if (!mvqOpenVotes.length) {
+    toast("✅ Admin unlocked — no open votes to close right now.");
+  } else {
+    toast(`✅ Admin unlocked — ${mvqOpenVotes.length} vote(s) ready to close.`);
+  }
 }
 
 function renderMvqAdminActions() {
   const el = document.getElementById("mvq-admin-open-actions");
-  el.style.display = mvqOpenVotes.length ? "block" : "none";
-  if (mvqOpenVotes.length) {
-    el.innerHTML = mvqOpenVotes.map((v,i) =>
-      `<button class="btn btn-gradient" style="width:100%;margin-bottom:8px"
-        onclick="closeMvqVote('${v.episode}')">
-        🔒 Close "${v.episode}" Vote & Reveal Results
-      </button>`
-    ).join("");
+  if (!el) return;
+  if (!mvqOpenVotes.length) {
+    el.style.display = "block";
+    el.innerHTML = `<p style="color:#aaa;font-size:13px;text-align:center;padding:8px 0">
+      No open votes to close right now.<br>
+      <span style="font-size:12px">Past votes appear in the "Past Votes" section above.</span>
+    </p>`;
+    return;
   }
+  el.style.display = "block";
+  el.innerHTML = mvqOpenVotes.map(v =>
+    `<button class="btn btn-gradient" style="width:100%;margin-bottom:8px"
+      onclick="closeMvqVote('${v.episode}')">
+      🔒 Close "${v.episode}" Vote & Reveal Results
+      ${v.isExpired ? '<br><span style="font-size:12px;opacity:.8">⏰ Voting window expired</span>' : ''}
+    </button>`
+  ).join("");
 }
 
 async function closeMvqVote(episode) {
