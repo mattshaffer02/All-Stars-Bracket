@@ -310,7 +310,7 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:10px;color:#4a148c">📖 How It Works</div>
   <div style="font-size:14px;color:#333;line-height:1.7">
     <p style="margin-bottom:8px">After each episode, vote for the queen you think was the <strong>Most Valuable Queen</strong> — the one who impressed you most, even if she didn't win.</p>
-    <p style="margin-bottom:8px">🗓️ <strong>Voting closes Wednesday night</strong> after the premiere episodes, and <strong>Monday night</strong> for all other episodes. You have the weekend to watch and vote.</p>
+    <p style="margin-bottom:8px">🗓️ <strong>Voting closes the following Friday at 5:00pm MT</strong> — right when the next episode drops. You have a full week to watch and vote.</p>
     <p style="margin-bottom:8px">⭐ <strong>+2 points</strong> if your pick matches the group consensus. In a tie, everyone who voted for any tied queen gets +2.</p>
     <p style="margin-bottom:8px">🔒 <strong>Results hidden while voting is open</strong> — you'll only see how many people have voted, not who they picked.</p>
     <p>👤 <strong>To vote:</strong> scroll down, tap your name, pick your queen, hit Submit.</p>
@@ -387,7 +387,10 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
     </div>
     <textarea id="chat-message-input" placeholder="The library is open — read your friends, spill the T, give us the drama… 💅"
       style="width:100%;padding:12px 14px;border-radius:12px;border:2px solid #c8b0f0;font-family:Georgia,serif;font-size:15px;resize:none;outline:none;min-height:80px;color:#2d0036;background:#fff"
-      onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')sendChatMessage()"></textarea>
+      onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')sendChatMessage()"
+      oninput="handleChatInput(this)"></textarea>
+    <!-- @mention picker -->
+    <div id="chat-mention-picker" style="display:none;background:#fff;border:2px solid #9c6fde;border-radius:12px;padding:6px;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,0.12)"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
       <span style="font-size:12px;color:#bbb">Cmd+Enter to send</span>
       <button id="chat-send-btn" class="btn btn-gradient btn-sm" onclick="sendChatMessage()">Send 💬</button>
@@ -961,6 +964,163 @@ async function saveResults() {
   else toast("❌ Error saving. Try again.");
 }
 
+// ── ACHIEVEMENT BADGES ────────────────────────────────────────────────────────
+const BADGE_DEFS = [
+  // Skill badges
+  {
+    id: "oracle",
+    emoji: "👁️", name: "Oracle",
+    desc: "Correctly predicted 3+ MVQ votes",
+    check: (p, ctx) => ctx.mvqCorrect[p.player] >= 3
+  },
+  {
+    id: "seer",
+    emoji: "🔮", name: "The Seer",
+    desc: "Correctly predicted 5+ MVQ votes",
+    check: (p, ctx) => ctx.mvqCorrect[p.player] >= 5
+  },
+  {
+    id: "bracketqueen",
+    emoji: "🏆", name: "Bracket Queen",
+    desc: "Picked the advancing queen from all 3 brackets",
+    check: (p, ctx) => {
+      const brackets = Object.keys(QUEENS);
+      return brackets.every(b =>
+        QUEENS[b].some(q => (p.queens||[]).includes(q.id) && getR(q.id).advances)
+      );
+    }
+  },
+  {
+    id: "sharpeye",
+    emoji: "🎯", name: "Sharp Eye",
+    desc: "All your queens earned at least one win or top 2",
+    check: (p, ctx) => {
+      const qs = p.queens || [];
+      return qs.length > 0 && qs.every(qid => {
+        const allEps = [...getR(qid).episodes, ...getR(qid).semiEpisodes];
+        return allEps.some(e => e?.win || e?.top2);
+      });
+    }
+  },
+  {
+    id: "bigspender",
+    emoji: "💰", name: "Big Spender",
+    desc: "Picked the most queens of anyone",
+    check: (p, ctx) => ctx.mostPicks === (p.queens||[]).length && (p.queens||[]).length > 0
+  },
+  // Narrative badges
+  {
+    id: "rideordie",
+    emoji: "🐎", name: "Ride or Die",
+    desc: "All your picks are from the same bracket",
+    check: (p, ctx) => {
+      const qs = p.queens || [];
+      if (qs.length < 2) return false;
+      const brackets = Object.keys(QUEENS);
+      return brackets.some(b => qs.every(qid => QUEENS[b].some(q => q.id === qid)));
+    }
+  },
+  {
+    id: "firstout",
+    emoji: "💀", name: "Sending Her Home",
+    desc: "One of your picks was the first queen eliminated",
+    check: (p, ctx) => ctx.firstElimId && (p.queens||[]).includes(ctx.firstElimId)
+  },
+  {
+    id: "calledit",
+    emoji: "🔄", name: "Called It",
+    desc: "One of your picks came back as a Comeback Queen",
+    check: (p, ctx) => (p.queens||[]).some(qid => getR(qid).comeback)
+  },
+  {
+    id: "starmaker",
+    emoji: "🌟", name: "Star Maker",
+    desc: "Picked the season winner",
+    check: (p, ctx) => ctx.winnerId && (p.queens||[]).includes(ctx.winnerId)
+  },
+  // Participation badges
+  {
+    id: "voter",
+    emoji: "🗳️", name: "Loyal Voter",
+    desc: "Voted in every closed MVQ poll",
+    check: (p, ctx) => {
+      if (!ctx.closedVotes.length) return false;
+      return ctx.closedVotes.every(v => !!(v.votes||{})[p.player]);
+    }
+  },
+  {
+    id: "chatter",
+    emoji: "💬", name: "Reading Room Regular",
+    desc: "Sent 10+ messages in the Reading Room",
+    check: (p, ctx) => (ctx.chatCounts[p.player] || 0) >= 10
+  },
+];
+
+// Build context object needed to evaluate all badges
+function buildBadgeContext(players, mvqPastVotes, chatMessages) {
+  // MVQ correct votes per player
+  const mvqCorrect = {};
+  mvqPastVotes.forEach(vote => {
+    const votes   = vote.votes   || {};
+    const winners = vote.winners || [];
+    Object.entries(votes).forEach(([player, qid]) => {
+      if (winners.includes(qid)) {
+        mvqCorrect[player] = (mvqCorrect[player] || 0) + 1;
+      }
+    });
+  });
+
+  // Most picks count
+  const mostPicks = Math.max(...players.map(p => (p.queens||[]).length), 0);
+
+  // First eliminated queen (earliest elim across all ep slots)
+  let firstElimId = null;
+  let firstElimEpIdx = 999;
+  ALL_QUEENS.forEach(q => {
+    const r = getR(q.id);
+    r.episodes.forEach((ep, i) => {
+      if (ep?.elim && i < firstElimEpIdx) {
+        firstElimEpIdx = i;
+        firstElimId    = q.id;
+      }
+    });
+  });
+
+  // Season winner
+  const winnerId = (ALL_QUEENS.find(q => getR(q.id).finalist) || {}).id || null;
+
+  // Chat message counts per player
+  const chatCounts = {};
+  chatMessages.forEach(msg => {
+    chatCounts[msg.player] = (chatCounts[msg.player] || 0) + 1;
+  });
+
+  // Closed votes (for voter badge)
+  const closedVotes = mvqPastVotes;
+
+  return { mvqCorrect, mostPicks, firstElimId, winnerId, chatCounts, closedVotes };
+}
+
+// Returns array of earned badge objects for a player
+function getPlayerBadges(player, ctx) {
+  return BADGE_DEFS.filter(b => {
+    try { return b.check(player, ctx); } catch(e) { return false; }
+  });
+}
+
+// Render badge chips for display
+function renderBadges(badges) {
+  if (!badges.length) return "";
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+    ${badges.map(b => `
+      <div title="${b.desc}" style="display:flex;align-items:center;gap:4px;
+        background:linear-gradient(135deg,#2d0036,#4a148c);color:#fff;
+        border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:help">
+        ${b.emoji} ${b.name}
+      </div>`).join("")}
+  </div>`;
+}
+
 // ── LEADERBOARD ───────────────────────────────────────────────────────────────
 async function loadLeaderboard() {
   const el = document.getElementById("leaderboard-content");
@@ -976,9 +1136,22 @@ async function loadLeaderboard() {
     try {
       const mvqData = await apiFetch({ action:"getMvq" });
       mvqPastVotesLB = mvqData.past || [];
-    } catch(e) { /* MVQ unavailable — leaderboard still works */ }
+    } catch(e) {}
+
+    let chatMessages = [];
+    try {
+      const chatData = await apiFetch({ action:"getChat" });
+      chatMessages = chatData.messages || [];
+    } catch(e) {}
 
     results = parseResults(resultsData.results || {});
+
+    // Build badge context from all available data
+    const badgeCtx = buildBadgeContext(
+      playersData.players || [],
+      mvqPastVotesLB,
+      chatMessages
+    );
 
     // Tally MVQ bonus points per player from closed past votes
     const mvqBonus = {};
@@ -1024,9 +1197,10 @@ async function loadLeaderboard() {
     ];
 
     el.innerHTML = players.map((p, i) => {
-      const isTied = players.filter(x => x.score === p.score).length > 1;
+      const isTied     = players.filter(x => x.score === p.score).length > 1;
       const rankDisplay = `${p.rank}${rankSuffix(p.rank)}${isTied ? " 🤝" : ""}`;
-      const isTopScore = p.score > 0 && p.rank === 1;
+      const isTopScore  = p.score > 0 && p.rank === 1;
+      const badges      = getPlayerBadges(p, badgeCtx);
 
       // Per-queen breakdown with bracket color
       const queenRows = p.queens.map(id => {
@@ -1079,6 +1253,7 @@ async function loadLeaderboard() {
             </div>
           </div>
           <div>${queenRows}${mvqRow}</div>
+          ${renderBadges(badges)}
         </div>
       </div>`;
     }).join("");
@@ -1125,20 +1300,20 @@ function saveLocalMvqVotes(data) {
 // (Same window — players vote on both separately but have until the same Monday.)
 // From Ep3 onward, one episode per Friday.
 const MVQ_SCHEDULE = [
-  // Eps 1 & 2: double premiere May 8. Extended deadline to Wed May 13 11:59pm MT = Thu May 14 05:59 UTC
-  { episode:"Episode 1",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-14T05:59:00Z" },
-  { episode:"Episode 2",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-14T05:59:00Z" },
-  // Ep 3 onward: one per Friday, closes following Monday 11:59pm MT = Tue 05:59 UTC
-  { episode:"Episode 3",  openUTC:"2026-05-15T23:00:00Z", closeUTC:"2026-05-19T05:59:00Z" },
-  { episode:"Episode 4",  openUTC:"2026-05-22T23:00:00Z", closeUTC:"2026-05-26T05:59:00Z" },
-  { episode:"Episode 5",  openUTC:"2026-05-29T23:00:00Z", closeUTC:"2026-06-02T05:59:00Z" },
-  { episode:"Episode 6",  openUTC:"2026-06-05T23:00:00Z", closeUTC:"2026-06-09T05:59:00Z" },
-  { episode:"Episode 7",  openUTC:"2026-06-12T23:00:00Z", closeUTC:"2026-06-16T05:59:00Z" },
-  { episode:"Episode 8",  openUTC:"2026-06-19T23:00:00Z", closeUTC:"2026-06-23T05:59:00Z" },
-  { episode:"Episode 9",  openUTC:"2026-06-26T23:00:00Z", closeUTC:"2026-06-30T05:59:00Z" },
-  { episode:"Episode 10", openUTC:"2026-07-03T23:00:00Z", closeUTC:"2026-07-07T05:59:00Z" },
-  { episode:"Episode 11", openUTC:"2026-07-10T23:00:00Z", closeUTC:"2026-07-14T05:59:00Z" },
-  { episode:"Episode 12", openUTC:"2026-07-17T23:00:00Z", closeUTC:"2026-07-21T05:59:00Z" },
+  // Eps 1 & 2: double premiere May 8. Close Fri May 15 5pm MT = Sat May 16 23:00 UTC
+  { episode:"Episode 1",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-15T23:00:00Z" },
+  { episode:"Episode 2",  openUTC:"2026-05-08T23:00:00Z", closeUTC:"2026-05-15T23:00:00Z" },
+  // Each episode: opens Fri 5pm MT, closes following Fri 5pm MT (one full week)
+  { episode:"Episode 3",  openUTC:"2026-05-15T23:00:00Z", closeUTC:"2026-05-22T23:00:00Z" },
+  { episode:"Episode 4",  openUTC:"2026-05-22T23:00:00Z", closeUTC:"2026-05-29T23:00:00Z" },
+  { episode:"Episode 5",  openUTC:"2026-05-29T23:00:00Z", closeUTC:"2026-06-05T23:00:00Z" },
+  { episode:"Episode 6",  openUTC:"2026-06-05T23:00:00Z", closeUTC:"2026-06-12T23:00:00Z" },
+  { episode:"Episode 7",  openUTC:"2026-06-12T23:00:00Z", closeUTC:"2026-06-19T23:00:00Z" },
+  { episode:"Episode 8",  openUTC:"2026-06-19T23:00:00Z", closeUTC:"2026-06-26T23:00:00Z" },
+  { episode:"Episode 9",  openUTC:"2026-06-26T23:00:00Z", closeUTC:"2026-07-03T23:00:00Z" },
+  { episode:"Episode 10", openUTC:"2026-07-03T23:00:00Z", closeUTC:"2026-07-10T23:00:00Z" },
+  { episode:"Episode 11", openUTC:"2026-07-10T23:00:00Z", closeUTC:"2026-07-17T23:00:00Z" },
+  { episode:"Episode 12", openUTC:"2026-07-17T23:00:00Z", closeUTC:"2026-07-24T23:00:00Z" },
 ];
 
 // Returns list of episodes that should currently be open for voting
@@ -1154,9 +1329,8 @@ function getMvqCurrentlyOpen() {
 // Returns deadline display string from a closeUTC string
 function getDeadlineFromClose(closeUTC) {
   const d = new Date(closeUTC);
-  // Convert to MT display
   return d.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric", timeZone:"America/Denver" })
-    + " at 11:59pm MT";
+    + " at 5:00pm MT";
 }
 let mvqAdminUnlocked = false;
 let mvqOpenVotes = [];   // array of open vote objects
@@ -1860,10 +2034,12 @@ async function loadChat() {
     }
 
     feed.innerHTML = messages.map((msg, i) => {
-      const isMe = msg.player === chatPlayer;
-      const color = chatColor(msg.player);
-      const initials = msg.player.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
-      return `<div style="display:flex;gap:10px;margin-bottom:16px;${isMe?"flex-direction:row-reverse":""}">
+      const isMe       = msg.player === chatPlayer;
+      const isMentioned = !isMe && isMentionedInMsg(msg.text);
+      const color      = chatColor(msg.player);
+      const initials   = msg.player.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+      return `<div style="display:flex;gap:10px;margin-bottom:16px;${isMe?"flex-direction:row-reverse":""}
+        ${isMentioned?"background:#fff8e0;border-radius:16px;padding:8px;margin-left:-8px;margin-right:-8px;border-left:3px solid #ffd700;":""}">
         <!-- Avatar -->
         <div style="width:38px;height:38px;border-radius:50%;background:${color};color:#fff;
           display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;
@@ -1873,15 +2049,16 @@ async function loadChat() {
           <div style="font-size:12px;color:#aaa;margin-bottom:3px;${isMe?"text-align:right":""}">
             <span style="font-weight:700;color:${color}">${msg.player}</span>
             · ${formatChatTime(msg.timestamp)}
+            ${isMentioned ? '<span style="color:#c8a000;font-weight:700"> · mentioned you</span>' : ""}
           </div>
           <div style="background:${isMe?"linear-gradient(135deg,#ff6b9d,#9c6fde)":"#fff"};
             color:${isMe?"#fff":"#2d0036"};
             border-radius:${isMe?"18px 18px 4px 18px":"18px 18px 18px 4px"};
             padding:10px 14px;font-size:15px;line-height:1.5;
             box-shadow:0 2px 8px rgba(0,0,0,0.08);
-            border:${isMe?"none":"2px solid #f0eaff"};
+            border:${isMe?"none":isMentioned?"2px solid #ffd700":"2px solid #f0eaff"};
             word-break:break-word">
-            ${escapeHtml(msg.text)}
+            ${renderMsgText(msg.text, isMe)}
           </div>
         </div>
       </div>`;
@@ -1930,12 +2107,85 @@ function resetChatPlayer() {
   document.getElementById("chat-compose").style.display = "none";
 }
 
+// Render message text with @mentions highlighted
+function renderMsgText(text, isMe) {
+  const escaped = escapeHtml(text);
+  // Replace @Name with highlighted span — match against known player names
+  return escaped.replace(/@([\w']+(?:\s[\w']+)?)/g, (match, name) => {
+    const isRealPlayer = allPlayers.some(p =>
+      p.player.toLowerCase().startsWith(name.toLowerCase())
+    );
+    if (!isRealPlayer) return match;
+    const mentionColor = isMe ? "rgba(255,255,255,0.35)" : "#e8d8ff";
+    const mentionTextColor = isMe ? "#fff" : "#4a148c";
+    return `<span style="background:${mentionColor};color:${mentionTextColor};border-radius:6px;padding:1px 6px;font-weight:700">@${name}</span>`;
+  });
+}
+
+// Check if a message mentions the current player
+function isMentionedInMsg(text) {
+  if (!chatPlayer) return false;
+  const firstName = chatPlayer.split(" ")[0];
+  return new RegExp(`@${firstName}\\b`, "i").test(text);
+}
+
 function escapeHtml(str) {
   return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
             .replace(/"/g,"&quot;").replace(/\n/g,"<br>");
 }
 
-async function sendChatMessage() {
+function handleChatInput(textarea) {
+  const val    = textarea.value;
+  const cursor = textarea.selectionStart;
+  const picker = document.getElementById("chat-mention-picker");
+
+  // Find if cursor is right after an @ symbol with partial name
+  const before = val.slice(0, cursor);
+  const match  = before.match(/@([\w]*)$/);
+
+  if (!match || !allPlayers.length) {
+    picker.style.display = "none";
+    return;
+  }
+
+  const query   = match[1].toLowerCase();
+  const matches = allPlayers.filter(p =>
+    p.player.toLowerCase().startsWith(query) && p.player !== chatPlayer
+  );
+
+  if (!matches.length) { picker.style.display = "none"; return; }
+
+  picker.style.display = "block";
+  picker.innerHTML = matches.map(p => {
+    const color = chatColor(p.player);
+    return `<div onclick="insertMention('${p.player}')"
+      style="padding:8px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#2d0036"
+      onmouseover="this.style.background='#e8d8ff'" onmouseout="this.style.background='transparent'">
+      <div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;
+        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">
+        ${p.player[0].toUpperCase()}
+      </div>
+      @${p.player}
+    </div>`;
+  }).join("");
+}
+
+function insertMention(playerName) {
+  const textarea = document.getElementById("chat-message-input");
+  const val      = textarea.value;
+  const cursor   = textarea.selectionStart;
+  const before   = val.slice(0, cursor);
+  const after    = val.slice(cursor);
+
+  // Replace the partial @mention with the full name
+  const newBefore = before.replace(/@([\w]*)$/, `@${playerName.split(" ")[0]} `);
+  textarea.value  = newBefore + after;
+  textarea.focus();
+  const newCursor = newBefore.length;
+  textarea.setSelectionRange(newCursor, newCursor);
+
+  document.getElementById("chat-mention-picker").style.display = "none";
+}
   if (!chatPlayer) { toast("Select your name first!"); return; }
   const input = document.getElementById("chat-message-input");
   const text  = input.value.trim();
@@ -2088,10 +2338,19 @@ async function loadWrap() {
     try {
       const mvqData = await apiFetch({ action:"getMvq" });
       pastVotes = mvqData.past || [];
-    } catch(e) { /* MVQ unavailable — wrap still works without it */ }
+    } catch(e) {}
+
+    let wrapChatMessages = [];
+    try {
+      const chatData = await apiFetch({ action:"getChat" });
+      wrapChatMessages = chatData.messages || [];
+    } catch(e) {}
 
     const players = playersData.players || [];
     results = parseResults(resultsData.results || {});
+
+    // Build badge context
+    const wrapBadgeCtx = buildBadgeContext(players, pastVotes, wrapChatMessages);
 
     // Check if season is over
     const winner = ALL_QUEENS.find(q => getR(q.id).finalist);
@@ -2114,9 +2373,9 @@ async function loadWrap() {
       get score() { return this.queenPts + this.mvqPts; }
     })).sort((a,b) => b.score - a.score);
 
-    // Stats
-    const totalEps   = ALL_QUEENS.flatMap(q => [...getR(q.id).episodes, ...getR(q.id).semiEpisodes]).filter(Boolean).length;
-    const totalWins  = ALL_QUEENS.reduce((s,q) => s + [...getR(q.id).episodes,...getR(q.id).semiEpisodes].filter(e=>e==="win").length, 0);
+    // Stats — fix win count to use object format
+    const totalEps  = ALL_QUEENS.flatMap(q => [...getR(q.id).episodes, ...getR(q.id).semiEpisodes]).filter(e => e && Object.keys(e).length).length;
+    const totalWins = ALL_QUEENS.reduce((s,q) => s + [...getR(q.id).episodes,...getR(q.id).semiEpisodes].filter(e=>e?.win).length, 0);
     const totalVotes = pastVotes.length;
 
     // Most picked queen
@@ -2198,10 +2457,11 @@ async function loadWrap() {
     const standingsHtml = `
       <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#2d0036;margin:20px 0 12px">🏆 Final Standings</div>
       ${ranked.map((p, i) => {
-        const medal = p.rank===1?"🥇":p.rank===2?"🥈":p.rank===3?"🥉":"";
-        const isTied = ranked.filter(x=>x.score===p.score).length > 1;
+        const medal    = p.rank===1?"🥇":p.rank===2?"🥈":p.rank===3?"🥉":"";
+        const isTied   = ranked.filter(x=>x.score===p.score).length > 1;
         const bestQueen = p.queens.map(qid => ({ qid, pts: calcPts(qid) })).sort((a,b)=>b.pts-a.pts)[0];
-        const bq = bestQueen ? ALL_QUEENS.find(q=>q.id===bestQueen.qid) : null;
+        const bq       = bestQueen ? ALL_QUEENS.find(q=>q.id===bestQueen.qid) : null;
+        const wrapBadges = getPlayerBadges(p, wrapBadgeCtx);
         return `<div style="background:#fff;border-radius:16px;padding:14px 18px;margin-bottom:10px;
           box-shadow:${p.rank===1?"0 4px 24px rgba(156,111,222,0.2)":"0 2px 10px rgba(0,0,0,0.06)"};
           border:2px solid ${p.rank===1?"#9c6fde":"#f0eaff"}">
@@ -2222,6 +2482,7 @@ async function loadWrap() {
             Best pick: <strong style="color:#2d0036">${bq.emoji} ${bq.name}</strong> (+${bestQueen.pts} pts)
             ${p.mvqPts > 0 ? `· MVQ bonus: <strong style="color:#c94f00">+${p.mvqPts}</strong>` : ""}
           </div>` : ""}
+          ${renderBadges(wrapBadges)}
         </div>`;
       }).join("")}`;
 
