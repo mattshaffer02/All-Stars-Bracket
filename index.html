@@ -2186,6 +2186,8 @@ function insertMention(playerName) {
 
   document.getElementById("chat-mention-picker").style.display = "none";
 }
+
+async function sendChatMessage() {
   if (!chatPlayer) { toast("Select your name first!"); return; }
   const input = document.getElementById("chat-message-input");
   const text  = input.value.trim();
