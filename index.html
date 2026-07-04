@@ -145,12 +145,12 @@
       <h1>All Stars 11</h1>
       <p class="subtitle">Tournament of All Stars · Pick 'Em</p>
     </div>
-    <button class="home-btn home-btn-picks" onclick="showView('picks')">👀 View My Picks <span style="font-size:13px;font-weight:400;opacity:.7">(locked)</span></button>
-    <button class="home-btn home-btn-mvq" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
-    <button class="home-btn home-btn-rankings" onclick="showView('rankings')">📊 Queen Power Rankings</button>
-    <button class="home-btn home-btn-chat" onclick="showView('chat')">💅 Reading Room — The Library is Open</button>
     <button class="home-btn home-btn-board" onclick="showView('leaderboard')">🏆 Leaderboard</button>
+    <button class="home-btn home-btn-mvq" onclick="showView('mvq')">⭐ MVQ Weekly Vote</button>
+    <button class="home-btn home-btn-chat" onclick="showView('chat')">💅 Reading Room — The Library is Open</button>
+    <button class="home-btn home-btn-rankings" onclick="showView('rankings')">📊 Queen Power Rankings</button>
     <button class="home-btn home-btn-wrap" onclick="showView('wrap')">🎬 Season Wrap</button>
+    <button class="home-btn home-btn-picks" onclick="showView('picks')">👀 View My Picks <span style="font-size:13px;font-weight:400;opacity:.7">(locked)</span></button>
     <button class="home-btn home-btn-results" onclick="showView('results')">📋 Enter Results <span style="font-size:13px;font-weight:400;opacity:.85">(admin)</span></button>
     <div class="card" style="margin-top:24px">
       <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:18px;margin-bottom:4px;color:#2d0036">📊 How to Score Points</div>
@@ -1222,21 +1222,22 @@ async function loadLeaderboard() {
         const qPts = calcPts(id);
         const reasons = [];
         allEps.forEach(ep => {
-          if (ep && ep.win)  reasons.push("🏆 Win");
-          if (ep && ep.top2) reasons.push("🥈 Top 2");
+          if (ep && ep.win)    reasons.push("🏆 Win");
+          if (ep && ep.top2)   reasons.push("🥈 Top 2");
+          if (ep && ep.bottom) reasons.push("👇 Bottom 2");
         });
         if (r.advances) reasons.push("⬆️ Semis");
         if (r.finalist) reasons.push("👑 Winner");
-        const badge = r.finalist?"👑":r.advances?"⬆️":allEps.some(e=>e?.win)?"🏆":allEps.some(e=>e?.top2)?"🥈":allEps.some(e=>e?.elim)?"❌":"";
+        const badge = r.finalist?"👑":r.advances?"⬆️":allEps.some(e=>e?.win)?"🏆":allEps.some(e=>e?.top2)?"🥈":allEps.some(e=>e?.bottom)?"👇":allEps.some(e=>e?.elim)?"❌":"";
         const reasonStr = reasons.length ? reasons.join(", ") : "No points yet";
         const bkt = queenBracket[id] || "Purple";
         return `<div style="display:flex;justify-content:space-between;align-items:center;
           padding:6px 10px;border-radius:10px;margin-bottom:4px;
-          background:${bracketBg[bkt]};border-left:3px solid ${bracketDot[bkt]}">
-          <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:${bracketText[bkt]}">${badge} ${q.name.split(" ")[0]}</span>
+          background:${qPts<0?"#fff3f3":bracketBg[bkt]};border-left:3px solid ${qPts<0?"#e53935":bracketDot[bkt]}">
+          <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:${qPts<0?"#e53935":bracketText[bkt]}">${badge} ${q.name.split(" ")[0]}</span>
           <span style="display:flex;align-items:center;gap:8px">
             <span style="font-size:11px;color:#999">${reasonStr}</span>
-            <span style="font-weight:800;font-size:14px;color:${qPts>0?bracketDot[bkt]:"#ccc"};min-width:28px;text-align:right">+${qPts}</span>
+            <span style="font-weight:800;font-size:14px;color:${qPts<0?"#e53935":qPts>0?bracketDot[bkt]:"#ccc"};min-width:28px;text-align:right">${qPts>0?"+":""}${qPts}</span>
           </span>
         </div>`;
       }).filter(Boolean).join("");
