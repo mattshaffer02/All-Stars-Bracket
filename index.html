@@ -134,6 +134,7 @@
   <button data-view="wrap" onclick="showView('wrap')">🎬 Wrap</button>
   <button data-view="picks" onclick="showView('picks')">🗳️ Picks</button>
   <button data-view="results" onclick="showView('results')">📋 Results</button>
+  <button data-view="analytics" onclick="showView('analytics')">📈 Stats</button>
 </nav>
 
 <div class="container">
@@ -428,8 +429,24 @@
     <div id="leaderboard-content"><div class="spinner"></div></div>
   </div>
 
-</div>
-<div id="toast"></div>
+  <!-- ANALYTICS -->
+  <div id="view-analytics" class="view">
+    <h2>📈 Analytics</h2>
+    <div id="analytics-locked">
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <input type="password" id="analytics-pw" placeholder="Admin password…"
+          onkeydown="if(event.key==='Enter')unlockAnalytics()" />
+        <button class="btn btn-purple" onclick="unlockAnalytics()">Unlock</button>
+      </div>
+      <p style="color:#bbb;font-size:14px;text-align:center;padding:20px 0">🔒 Admin only</p>
+    </div>
+    <div id="analytics-content" style="display:none">
+      <button class="btn btn-outline btn-sm" style="margin-bottom:20px" onclick="loadAnalytics()">↻ Refresh</button>
+      <div id="analytics-dashboard"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</div><!-- end container -->
 
 <script>
 // ── CONFIG — keep your existing Apps Script URL and password ──────────────────
@@ -517,6 +534,24 @@ function toast(msg) {
   setTimeout(() => el.classList.remove("show"), 2800);
 }
 
+// ── ANALYTICS LOGGING ────────────────────────────────────────────────────────
+// Detect device type
+function getDevice() {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return "iOS";
+  if (/Android/.test(ua)) return "Android";
+  if (/Macintosh|Mac OS/.test(ua)) return "Mac";
+  if (/Windows/.test(ua)) return "Windows";
+  return "Other";
+}
+
+// Fire-and-forget event logger — never blocks the UI
+function logAnalyticsEvent(event, detail = "") {
+  const player = chatPlayer || currentPlayer || "anonymous";
+  apiPost({ action:"logEvent", event, player, detail, device:getDevice() })
+    .catch(() => {}); // silently ignore failures
+}
+
 function showView(id) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
@@ -524,14 +559,17 @@ function showView(id) {
   const btn = document.querySelector(`nav button[data-view="${id}"]`);
   if (btn) btn.classList.add("active");
   if (id === "leaderboard") loadLeaderboard();
-  if (id === "mvq") loadMvqView();
-  if (id === "chat") loadChat();
-  if (id === "rankings") loadRankings();
-  if (id === "wrap") loadWrap();
+  if (id === "mvq")         loadMvqView();
+  if (id === "chat")        loadChat();
+  if (id === "rankings")    loadRankings();
+  if (id === "wrap")        loadWrap();
+  if (id === "analytics")   loadAnalyticsView();
   if (id === "picks") {
     const banner = document.getElementById("picks-locked-banner");
     if (banner) banner.style.display = PICKS_LOCKED ? "block" : "none";
   }
+  // Log tab view (skip analytics to avoid noise)
+  if (id !== "analytics") logAnalyticsEvent("tab_view", id);
 }
 
 function showResultsSection(sec, tabEl) {
@@ -1634,6 +1672,7 @@ async function submitMvqVote(vi, episode) {
         // Update live count from Sheet (reflects all devices)
         updateMvqCount(vi, res.voteCount);
       }
+      logAnalyticsEvent("mvq_vote", episode);
     } catch(syncErr) {
       // Sheet sync failed — that's ok, local vote is saved
     }
@@ -2212,6 +2251,7 @@ async function sendChatMessage() {
     const res = await apiPost({ action:"sendChat", player:chatPlayer, text });
     if (res.success) {
       input.value = "";
+      logAnalyticsEvent("chat_message", chatPlayer);
       await loadChat();
     } else {
       toast("❌ Couldn't send. Try again.");
@@ -2509,9 +2549,220 @@ async function loadWrap() {
   }
 }
 
+// ── ANALYTICS VIEW ────────────────────────────────────────────────────────────
+let analyticsUnlocked = false;
+
+function unlockAnalytics() {
+  const pw = document.getElementById("analytics-pw").value;
+  if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
+  analyticsUnlocked = true;
+  document.getElementById("analytics-locked").style.display  = "none";
+  document.getElementById("analytics-content").style.display = "block";
+  loadAnalytics();
+}
+
+function loadAnalyticsView() {
+  if (analyticsUnlocked) loadAnalytics();
+}
+
+async function loadAnalytics() {
+  const el = document.getElementById("analytics-dashboard");
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const data = await apiFetch({ action:"getAnalytics" });
+    const events = data.events || [];
+    if (!events.length) {
+      el.innerHTML = '<p class="empty">No events logged yet. Data will appear as people use the app.</p>';
+      return;
+    }
+    renderAnalyticsDashboard(el, events);
+  } catch(e) {
+    el.innerHTML = `<p style="color:#c00;font-size:13px">Error: ${e.message}</p>`;
+  }
+}
+
+function renderAnalyticsDashboard(el, events) {
+  const now = Date.now();
+  const day  = 86400000;
+  const week = 7 * day;
+
+  // ── Helpers ──
+  const countBy = (arr, fn) => arr.reduce((acc, x) => {
+    const k = fn(x); acc[k] = (acc[k]||0) + 1; return acc;
+  }, {});
+
+  const uniqueDays = (arr) => new Set(arr.map(e =>
+    new Date(e.timestamp).toDateString()
+  )).size;
+
+  // ── Filter sets ──
+  const visits   = events.filter(e => e.event === "page_visit");
+  const tabViews = events.filter(e => e.event === "tab_view");
+  const mvqVotes = events.filter(e => e.event === "mvq_vote");
+  const chats    = events.filter(e => e.event === "chat_message");
+
+  const last7  = e => now - e.timestamp < week;
+  const last30 = e => now - e.timestamp < 30 * day;
+
+  // ── KPI Cards ──
+  const totalVisits    = visits.length;
+  const visitsThisWeek = visits.filter(last7).length;
+  const activeDays     = uniqueDays(visits);
+  const uniquePlayers  = new Set([...visits,...tabViews,...mvqVotes,...chats]
+    .map(e=>e.player).filter(p=>p!=="anonymous")).size;
+  const mvqTotal       = mvqVotes.length;
+  const chatTotal      = chats.length;
+
+  // ── Tab popularity ──
+  const tabCounts = countBy(tabViews, e => e.detail);
+  const topTabs   = Object.entries(tabCounts).sort((a,b)=>b[1]-a[1]);
+
+  // ── MVQ day-of-week breakdown ──
+  const mvqByDay = countBy(mvqVotes, e => e.dayOfWeek);
+  const daysOrder = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const mvqDayMax = Math.max(...Object.values(mvqByDay), 1);
+
+  // ── MVQ hour-of-day breakdown ──
+  const mvqByHour = countBy(mvqVotes, e => e.hourMT);
+  const mvqHourMax = Math.max(...Object.values(mvqByHour), 1);
+
+  // ── Time to vote (days after episode open) ──
+  const mvqEpVotes = {};
+  mvqVotes.forEach(e => {
+    if (!mvqEpVotes[e.detail]) mvqEpVotes[e.detail] = [];
+    mvqEpVotes[e.detail].push(e.timestamp);
+  });
+  const avgDaysToVote = Object.entries(mvqEpVotes).map(([ep, times]) => {
+    const sched = MVQ_SCHEDULE.find(s => s.episode === ep);
+    if (!sched) return null;
+    const openTs = new Date(sched.openUTC).getTime();
+    const avg = times.reduce((s,t)=>s+(t-openTs),0)/times.length/day;
+    return { ep, avg: Math.round(avg * 10)/10 };
+  }).filter(Boolean);
+
+  // ── Device breakdown ──
+  const allEvts   = events.filter(e => e.device && e.device !== "unknown");
+  const devCounts = countBy(allEvts, e => e.device);
+
+  // ── Player engagement ──
+  const playerActivity = {};
+  events.forEach(e => {
+    if (e.player === "anonymous") return;
+    if (!playerActivity[e.player]) playerActivity[e.player] = { visits:0, votes:0, chats:0, tabs:0 };
+    if (e.event === "page_visit")   playerActivity[e.player].visits++;
+    if (e.event === "mvq_vote")     playerActivity[e.player].votes++;
+    if (e.event === "chat_message") playerActivity[e.player].chats++;
+    if (e.event === "tab_view")     playerActivity[e.player].tabs++;
+  });
+
+  // ── Score gap trend (last 5 episodes) ──
+  // We can show how many episodes have had results saved
+  const resultSaves = events.filter(e => e.event === "results_save");
+
+  // ── MVQ consensus rate ──
+  // Can't compute without full vote data here — show as note
+
+  // ── Render ──
+  const card = (title, content) => `
+    <div style="background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036;margin-bottom:12px">${title}</div>
+      ${content}
+    </div>`;
+
+  const kpiGrid = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      ${[
+        ["👥", "Total Visits",    totalVisits],
+        ["📅", "Active Days",     activeDays],
+        ["🙋", "Active Players",  uniquePlayers],
+        ["📊", "This Week",       visitsThisWeek],
+        ["⭐", "MVQ Votes Cast",  mvqTotal],
+        ["💬", "Chat Messages",   chatTotal],
+      ].map(([emoji,label,val])=>`
+        <div style="background:#e8d8ff;border-radius:12px;padding:12px 14px;text-align:center">
+          <div style="font-size:22px">${emoji}</div>
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:24px;color:#4a148c">${val}</div>
+          <div style="font-size:11px;color:#666;margin-top:2px">${label}</div>
+        </div>`).join("")}
+    </div>`;
+
+  const tabBar = topTabs.map(([tab, count]) => {
+    const pct = Math.round(count / tabViews.length * 100);
+    const labels = { leaderboard:"🏆 Leaderboard", mvq:"⭐ MVQ", chat:"💅 Library",
+      rankings:"📊 Queens", wrap:"🎬 Wrap", picks:"🗳️ Picks", results:"📋 Results", home:"👑 Home" };
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
+        <span style="font-weight:700;color:#2d0036">${labels[tab]||tab}</span>
+        <span style="color:#888">${count} views (${pct}%)</span>
+      </div>
+      <div style="height:8px;background:#f4f4f4;border-radius:8px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#ff6b9d,#9c6fde);border-radius:8px"></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const dayBars = daysOrder.map(d => {
+    const count = mvqByDay[d] || 0;
+    const pct   = Math.round(count/mvqDayMax*100);
+    const isTop = count === mvqDayMax && count > 0;
+    return `<div style="text-align:center;flex:1">
+      <div style="height:60px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px">
+        <div style="width:28px;background:${isTop?"#ff8c42":"#e8d8ff"};border-radius:4px 4px 0 0;height:${Math.max(pct,4)}%"></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:${isTop?"#ff8c42":"#888"}">${d}</div>
+      <div style="font-size:11px;color:#bbb">${count||""}</div>
+    </div>`;
+  }).join("");
+
+  const hourBars = Array.from({length:24},(_,h)=>{
+    const count = mvqByHour[h]||0;
+    const pct   = Math.round(count/mvqHourMax*100);
+    const label = h===0?"12a":h<12?`${h}a`:h===12?"12p":`${h-12}p`;
+    const isTop = count===mvqHourMax && count>0;
+    return `<div style="text-align:center;flex:1;min-width:0">
+      <div style="height:40px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:2px">
+        <div style="width:100%;max-width:16px;background:${isTop?"#9c6fde":"#e8d8ff"};border-radius:2px 2px 0 0;height:${Math.max(pct,4)}%"></div>
+      </div>
+      <div style="font-size:9px;color:#bbb">${[0,6,12,18].includes(h)?label:""}</div>
+    </div>`;
+  }).join("");
+
+  const deviceList = Object.entries(devCounts).sort((a,b)=>b[1]-a[1])
+    .map(([d,c])=>`<span style="background:#e8d8ff;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;color:#4a148c;margin-right:6px">${d}: ${c}</span>`).join("");
+
+  const playerRows = Object.entries(playerActivity)
+    .sort((a,b)=>(b[1].visits+b[1].votes+b[1].chats)-(a[1].visits+a[1].votes+a[1].chats))
+    .map(([name,a])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f0ff;font-size:13px">
+        <span style="font-weight:700;color:#2d0036">${name}</span>
+        <span style="color:#888">${a.visits} visits · ${a.votes} MVQ · ${a.chats} chats · ${a.tabs} tabs</span>
+      </div>`).join("");
+
+  const timeToVoteRows = avgDaysToVote.map(({ep,avg})=>
+    `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f0ff;font-size:13px">
+      <span style="font-weight:700;color:#2d0036">${ep}</span>
+      <span style="color:${avg<1?"#2e7d32":avg<3?"#ff8c42":"#e53935"};font-weight:700">${avg} days avg</span>
+    </div>`).join("") || '<p style="color:#bbb;font-size:13px">Not enough data yet</p>';
+
+  el.innerHTML =
+    card("📊 Overview", kpiGrid) +
+    card("🗂️ Tab Popularity", tabBar || '<p style="color:#bbb;font-size:13px">No tab data yet</p>') +
+    card("📱 Devices", `<div style="margin-top:4px">${deviceList || '<p style="color:#bbb;font-size:13px">No device data yet</p>'}</div>`) +
+    card("⭐ MVQ Voting — Day of Week",
+      `<div style="display:flex;align-items:flex-end;gap:4px;height:80px;margin-bottom:8px">${dayBars}</div>
+       <p style="font-size:12px;color:#888">Best day to send voting reminders: <strong>${daysOrder.reduce((best,d)=>(mvqByDay[d]||0)>(mvqByDay[best]||0)?d:best, "Fri")}</strong></p>`) +
+    card("⏰ MVQ Voting — Time of Day (MT)",
+      `<div style="display:flex;align-items:flex-end;gap:1px;height:50px;margin-bottom:6px">${hourBars}</div>
+       <p style="font-size:12px;color:#888">Most people vote around <strong>${(()=>{const h=Object.entries(mvqByHour).sort((a,b)=>b[1]-a[1])[0]?.[0]||12; return h<12?h+"am":h==12?"12pm":(h-12)+"pm";})()}</strong> MT</p>`) +
+    card("⏳ Time to Vote After Episode Drops", timeToVoteRows) +
+    card("👤 Player Engagement", playerRows || '<p style="color:#bbb;font-size:13px">No player data yet</p>');
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
   renderPicksExistingPlayers();
+  // Log page visit after a short delay so player name has time to load from localStorage
+  setTimeout(() => logAnalyticsEvent("page_visit", "home"), 1000);
 });
 </script>
 </body>
