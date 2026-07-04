@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -9,139 +8,137 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-–pink:        #ff6b9d;
-–pink-light:  #ffd0e8;
-–pink-dark:   #c2185b;
-–orange:      #ff8c42;
-–orange-light:#ffe0c8;
-–orange-dark: #c94f00;
-–purple:      #9c6fde;
-–purple-light:#e8d8ff;
-–purple-dark: #4a148c;
-–black:       #2d0036;
-–grey-bg:     #f4f4f4;
-–grey-border: #dddddd;
-}
+  :root {
+    --pink:        #ff6b9d;
+    --pink-light:  #ffd0e8;
+    --pink-dark:   #c2185b;
+    --orange:      #ff8c42;
+    --orange-light:#ffe0c8;
+    --orange-dark: #c94f00;
+    --purple:      #9c6fde;
+    --purple-light:#e8d8ff;
+    --purple-dark: #4a148c;
+    --black:       #2d0036;
+    --grey-bg:     #f4f4f4;
+    --grey-border: #dddddd;
+  }
 
-body { font-family: Georgia, serif; background: linear-gradient(160deg,#fff5fa 0%,#f3ecff 50%,#fff8e1 100%); min-height:100vh; color:var(–black); }
-.container { max-width:620px; margin:0 auto; padding:0 16px 60px; }
+  body { font-family: Georgia, serif; background: linear-gradient(160deg,#fff5fa 0%,#f3ecff 50%,#fff8e1 100%); min-height:100vh; color:var(--black); }
+  .container { max-width:620px; margin:0 auto; padding:0 16px 60px; }
 
-/* NAV */
-nav { display:flex; background:#fff; border-bottom:2px solid #e8d8ff; position:sticky; top:0; z-index:100; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-nav button { flex:0 0 auto; padding:12px 10px; border:none; background:none; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:12px; color:#999; border-bottom:3px solid transparent; transition:all .2s; white-space:nowrap; }
-nav button.active { color:#9c6fde; border-bottom-color:#9c6fde; font-weight:700; }
-nav button:hover:not(.active) { color:#2d0036; background:#e8d8ff; }
+  /* NAV */
+  nav { display:flex; background:#fff; border-bottom:2px solid #e8d8ff; position:sticky; top:0; z-index:100; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  nav button { flex:0 0 auto; padding:12px 10px; border:none; background:none; cursor:pointer; font-family:'Playfair Display',serif; font-size:12px; color:#999; border-bottom:3px solid transparent; transition:all .2s; white-space:nowrap; }
+  nav button.active { color:#9c6fde; border-bottom-color:#9c6fde; font-weight:700; }
+  nav button:hover:not(.active) { color:#2d0036; background:#e8d8ff; }
 
-/* VIEWS */
-.view { display:none; padding-top:24px; }
-.view.active { display:block; }
+  /* VIEWS */
+  .view { display:none; padding-top:24px; }
+  .view.active { display:block; }
 
-/* TYPE */
-h1 { font-family:‘Playfair Display’,serif; font-size:clamp(28px,7vw,48px); color:var(–black); letter-spacing:-1px; }
-h2 { font-family:‘Playfair Display’,serif; font-size:24px; color:var(–black); margin-bottom:16px; }
-.subtitle { font-family:‘Playfair Display’,serif; font-style:italic; color:var(–purple); font-size:18px; margin:4px 0 28px; }
+  /* TYPE */
+  h1 { font-family:'Playfair Display',serif; font-size:clamp(28px,7vw,48px); color:var(--black); letter-spacing:-1px; }
+  h2 { font-family:'Playfair Display',serif; font-size:24px; color:var(--black); margin-bottom:16px; }
+  .subtitle { font-family:'Playfair Display',serif; font-style:italic; color:var(--purple); font-size:18px; margin:4px 0 28px; }
 
-/* CARDS */
-.card { background:#fff; border-radius:18px; padding:18px 20px; margin-bottom:12px; box-shadow:0 2px 16px rgba(0,0,0,0.07); }
+  /* CARDS */
+  .card { background:#fff; border-radius:18px; padding:18px 20px; margin-bottom:12px; box-shadow:0 2px 16px rgba(0,0,0,0.07); }
 
-/* BUTTONS */
-.btn { padding:13px 22px; border-radius:14px; border:none; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:16px; font-weight:700; transition:transform .15s; }
-.btn:hover { transform:scale(1.03); }
-.btn-purple { background:var(–purple); color:#fff; }
-.btn-outline { background:#fff; color:var(–purple); border:2px solid var(–purple); }
-.btn-gradient { background:linear-gradient(135deg,var(–pink),var(–purple)); color:#fff; }
-.btn-sm { padding:8px 16px; font-size:14px; border-radius:10px; }
+  /* BUTTONS */
+  .btn { padding:13px 22px; border-radius:14px; border:none; cursor:pointer; font-family:'Playfair Display',serif; font-size:16px; font-weight:700; transition:transform .15s; }
+  .btn:hover { transform:scale(1.03); }
+  .btn-purple { background:var(--purple); color:#fff; }
+  .btn-outline { background:#fff; color:var(--purple); border:2px solid var(--purple); }
+  .btn-gradient { background:linear-gradient(135deg,var(--pink),var(--purple)); color:#fff; }
+  .btn-sm { padding:8px 16px; font-size:14px; border-radius:10px; }
 
-/* INPUT */
-input[type=text], input[type=password] { width:100%; padding:13px 16px; border-radius:12px; border:2px solid #c8b0f0; font-family:‘Playfair Display’,serif; font-size:16px; outline:none; transition:border-color .2s; background:#fff; color:#2d0036; }
-input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
+  /* INPUT */
+  input[type=text], input[type=password] { width:100%; padding:13px 16px; border-radius:12px; border:2px solid #c8b0f0; font-family:'Playfair Display',serif; font-size:16px; outline:none; transition:border-color .2s; background:#fff; color:#2d0036; }
+  input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
 
-/* BRACKET */
-.bracket-header { display:flex; align-items:center; gap:10px; margin:20px 0 10px; }
-.bracket-dot { width:14px; height:14px; border-radius:50%; }
-.bracket-label { font-family:‘Playfair Display’,serif; font-weight:700; font-size:18px; }
+  /* BRACKET */
+  .bracket-header { display:flex; align-items:center; gap:10px; margin:20px 0 10px; }
+  .bracket-dot { width:14px; height:14px; border-radius:50%; }
+  .bracket-label { font-family:'Playfair Display',serif; font-weight:700; font-size:18px; }
 
-/* QUEEN ROW */
-.queen-row { display:flex; justify-content:space-between; align-items:center; border-radius:12px; padding:12px 16px; margin-bottom:8px; cursor:pointer; border:2px solid transparent; transition:all .15s; }
-.queen-row:hover { filter:brightness(0.97); }
-.queen-name { font-family:‘Playfair Display’,serif; font-weight:700; font-size:15px; }
-.queen-season { color:#999; font-size:12px; margin-top:2px; }
-.check-circle { width:28px; height:28px; border-radius:50%; border:2px solid #ddd; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; transition:all .15s; }
+  /* QUEEN ROW */
+  .queen-row { display:flex; justify-content:space-between; align-items:center; border-radius:12px; padding:12px 16px; margin-bottom:8px; cursor:pointer; border:2px solid transparent; transition:all .15s; }
+  .queen-row:hover { filter:brightness(0.97); }
+  .queen-name { font-family:'Playfair Display',serif; font-weight:700; font-size:15px; }
+  .queen-season { color:#999; font-size:12px; margin-top:2px; }
+  .check-circle { width:28px; height:28px; border-radius:50%; border:2px solid #ddd; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; transition:all .15s; }
 
-/* RESULTS TABS */
-.section-tabs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:24px; }
-.section-tab { padding:10px 6px; border-radius:12px; border:2px solid #eee; background:#fff; color:#999; cursor:pointer; font-weight:700; line-height:1.3; text-align:center; font-family:‘Playfair Display’,serif; transition:all .15s; }
-.section-tab.active { border-color:var(–purple); background:var(–purple); color:#fff; }
-.section-tab div:last-child { font-size:11px; opacity:.8; }
+  /* RESULTS TABS */
+  .section-tabs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:24px; }
+  .section-tab { padding:10px 6px; border-radius:12px; border:2px solid #eee; background:#fff; color:#999; cursor:pointer; font-weight:700; line-height:1.3; text-align:center; font-family:'Playfair Display',serif; transition:all .15s; }
+  .section-tab.active { border-color:var(--purple); background:var(--purple); color:#fff; }
+  .section-tab div:last-child { font-size:11px; opacity:.8; }
 
-/* EP GRID */
-.ep-grid { display:grid; gap:6px; margin-bottom:10px; }
-.ep-col { display:flex; flex-direction:column; gap:3px; }
-.ep-label { color:#ccc; font-size:10px; text-align:center; font-weight:700; letter-spacing:.5px; margin-bottom:2px; }
-.ep-btn { padding:4px 3px; border-radius:7px; border:2px solid #eee; background:transparent; color:#bbb; cursor:pointer; font-size:11px; font-weight:700; text-align:center; transition:all .1s; }
-.ep-btn.on { color:#fff; }
+  /* EP GRID */
+  .ep-grid { display:grid; gap:6px; margin-bottom:10px; }
+  .ep-col { display:flex; flex-direction:column; gap:3px; }
+  .ep-label { color:#ccc; font-size:10px; text-align:center; font-weight:700; letter-spacing:.5px; margin-bottom:2px; }
+  .ep-btn { padding:4px 3px; border-radius:7px; border:2px solid #eee; background:transparent; color:#bbb; cursor:pointer; font-size:11px; font-weight:700; text-align:center; transition:all .1s; }
+  .ep-btn.on { color:#fff; }
 
-/* TAG */
-.tag-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-.tag { padding:6px 12px; border-radius:20px; border:2px solid; cursor:pointer; font-size:13px; font-weight:600; transition:all .15s; }
+  /* TAG */
+  .tag-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .tag { padding:6px 12px; border-radius:20px; border:2px solid; cursor:pointer; font-size:13px; font-weight:600; transition:all .15s; }
 
-/* LEADERBOARD */
-.lb-row { display:flex; justify-content:space-between; align-items:flex-start; background:#fff; border-radius:18px; padding:16px 20px; margin-bottom:12px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
-.lb-rank { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; margin-right:14px; flex-shrink:0; }
-.lb-score { font-family:‘Playfair Display’,serif; font-size:32px; font-weight:800; color:var(–purple); line-height:1; }
-.lb-score-label { font-size:11px; color:#bbb; text-align:center; margin-top:2px; }
-.lb-queens { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.lb-queen-tag { background:var(–purple-light); border-radius:20px; padding:4px 10px; font-size:12px; color:var(–purple-dark); }
-.lb-breakdown { margin-top:8px; font-size:12px; color:#888; }
-.lb-breakdown span { display:inline-block; margin-right:10px; }
+  /* LEADERBOARD */
+  .lb-row { display:flex; justify-content:space-between; align-items:flex-start; background:#fff; border-radius:18px; padding:16px 20px; margin-bottom:12px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+  .lb-rank { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; margin-right:14px; flex-shrink:0; }
+  .lb-score { font-family:'Playfair Display',serif; font-size:32px; font-weight:800; color:var(--purple); line-height:1; }
+  .lb-score-label { font-size:11px; color:#bbb; text-align:center; margin-top:2px; }
+  .lb-queens { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .lb-queen-tag { background:var(--purple-light); border-radius:20px; padding:4px 10px; font-size:12px; color:var(--purple-dark); }
+  .lb-breakdown { margin-top:8px; font-size:12px; color:#888; }
+  .lb-breakdown span { display:inline-block; margin-right:10px; }
 
-/* TOAST */
-#toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(–black); color:#fff; padding:12px 24px; border-radius:30px; font-size:15px; transition:transform .3s; z-index:999; white-space:nowrap; }
-#toast.show { transform:translateX(-50%) translateY(0); }
+  /* TOAST */
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--black); color:#fff; padding:12px 24px; border-radius:30px; font-size:15px; transition:transform .3s; z-index:999; white-space:nowrap; }
+  #toast.show { transform:translateX(-50%) translateY(0); }
 
-/* SPINNER */
-.spinner { border:3px solid var(–purple-light); border-top-color:var(–purple); border-radius:50%; width:32px; height:32px; animation:spin .7s linear infinite; margin:40px auto; }
-@keyframes spin { to { transform:rotate(360deg); } }
-.empty { color:#bbb; text-align:center; padding:40px 0; font-size:15px; }
+  /* SPINNER */
+  .spinner { border:3px solid var(--purple-light); border-top-color:var(--purple); border-radius:50%; width:32px; height:32px; animation:spin .7s linear infinite; margin:40px auto; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .empty { color:#bbb; text-align:center; padding:40px 0; font-size:15px; }
 
-/* HOME */
-.home-btn { display:block; width:100%; padding:18px 24px; border-radius:18px; border:2px solid transparent; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:18px; font-weight:700; margin-bottom:14px; text-align:left; box-shadow:0 4px 20px rgba(0,0,0,0.12); transition:transform .15s; -webkit-tap-highlight-color:transparent; }
-.home-btn:hover { transform:scale(1.02); }
-.home-btn-picks    { background-color:#ffffff; color:#2d0036; border-color:#c9b3f5; }
-.home-btn-mvq      { background-color:#ff8c42; color:#ffffff; border-color:#ff8c42; }
-.home-btn-rankings { background-color:#00897b; color:#ffffff; border-color:#00897b; }
-.home-btn-chat     { background-color:#e91e8c; color:#ffffff; border-color:#e91e8c; }
-.home-btn-board    { background-color:#ff6b9d; color:#ffffff; border-color:#ff6b9d; background-image:linear-gradient(135deg,#ff6b9d,#9c6fde); }
-.home-btn-wrap     { background-color:#37474f; color:#ffffff; border-color:#37474f; }
-.home-btn-results  { background-color:#9c6fde; color:#ffffff; border-color:#9c6fde; }
-.pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
-.pill { padding:8px 16px; border-radius:20px; border:2px solid #9c6fde; color:#4a148c; background:#e8d8ff; cursor:pointer; font-family:‘Playfair Display’,serif; font-size:14px; transition:all .15s; font-weight:700; }
-.pill:hover { background:#9c6fde; color:#fff; }
-.score-guide { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
-.score-item { background:#e8d8ff; border-radius:10px; padding:10px 14px; }
-.score-pts { font-weight:800; font-size:20px; color:#4a148c; }
-.score-label { font-size:12px; color:#555; margin-top:2px; }
+  /* HOME */
+  .home-btn { display:block; width:100%; padding:18px 24px; border-radius:18px; border:2px solid transparent; cursor:pointer; font-family:'Playfair Display',serif; font-size:18px; font-weight:700; margin-bottom:14px; text-align:left; box-shadow:0 4px 20px rgba(0,0,0,0.12); transition:transform .15s; -webkit-tap-highlight-color:transparent; }
+  .home-btn:hover { transform:scale(1.02); }
+  .home-btn-picks    { background-color:#ffffff; color:#2d0036; border-color:#c9b3f5; }
+  .home-btn-mvq      { background-color:#ff8c42; color:#ffffff; border-color:#ff8c42; }
+  .home-btn-rankings { background-color:#00897b; color:#ffffff; border-color:#00897b; }
+  .home-btn-chat     { background-color:#e91e8c; color:#ffffff; border-color:#e91e8c; }
+  .home-btn-board    { background-color:#ff6b9d; color:#ffffff; border-color:#ff6b9d; background-image:linear-gradient(135deg,#ff6b9d,#9c6fde); }
+  .home-btn-wrap     { background-color:#37474f; color:#ffffff; border-color:#37474f; }
+  .home-btn-results  { background-color:#9c6fde; color:#ffffff; border-color:#9c6fde; }
+  .pill-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .pill { padding:8px 16px; border-radius:20px; border:2px solid #9c6fde; color:#4a148c; background:#e8d8ff; cursor:pointer; font-family:'Playfair Display',serif; font-size:14px; transition:all .15s; font-weight:700; }
+  .pill:hover { background:#9c6fde; color:#fff; }
+  .score-guide { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+  .score-item { background:#e8d8ff; border-radius:10px; padding:10px 14px; }
+  .score-pts { font-weight:800; font-size:20px; color:#4a148c; }
+  .score-label { font-size:12px; color:#555; margin-top:2px; }
 </style>
-
 </head>
 <body>
 
 <nav>
   <button class="active" data-view="home" onclick="showView('home')">👑 Home</button>
+  <button data-view="leaderboard" onclick="showView('leaderboard')">🏆 Board</button>
+  <button data-view="mvq" onclick="showView('mvq')">⭐ MVQ</button>
+  <button data-view="chat" onclick="showView('chat')">💅 Library</button>
+  <button data-view="rankings" onclick="showView('rankings')">📊 Queens</button>
+  <button data-view="wrap" onclick="showView('wrap')">🎬 Wrap</button>
   <button data-view="picks" onclick="showView('picks')">🗳️ Picks</button>
   <button data-view="results" onclick="showView('results')">📋 Results</button>
-  <button data-view="mvq" onclick="showView('mvq')">⭐ MVQ</button>
-  <button data-view="rankings" onclick="showView('rankings')">📊 Queens</button>
-  <button data-view="chat" onclick="showView('chat')">💅 Library</button>
-  <button data-view="leaderboard" onclick="showView('leaderboard')">🏆 Board</button>
-  <button data-view="wrap" onclick="showView('wrap')">🎬 Wrap</button>
 </nav>
 
 <div class="container">
 
   <!-- HOME -->
-
   <div id="view-home" class="view active">
     <div style="text-align:center;padding:32px 0 24px">
       <div style="font-size:60px;margin-bottom:8px">👑</div>
@@ -159,95 +156,107 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
       <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:18px;margin-bottom:4px;color:#2d0036">📊 How to Score Points</div>
       <div style="font-size:13px;color:#888;margin-bottom:16px">Pick your queens before the season — then earn points as they slay each episode.</div>
 
-```
-  <!-- Step 1: Pick queens -->
-  <div style="background:#e8d8ff;border-radius:14px;padding:14px 16px;margin-bottom:12px">
-    <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#4a148c;margin-bottom:6px">Step 1 — Pick Your Queens</div>
-    <div style="font-size:13px;color:#444;line-height:1.6">Before the season starts, select queens from each bracket that you think will perform well. You earn points whenever a queen you picked does well — so choose wisely!</div>
-  </div>
+      <!-- Step 1: Pick queens -->
+      <div style="background:#e8d8ff;border-radius:14px;padding:14px 16px;margin-bottom:12px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#4a148c;margin-bottom:6px">Step 1 — Pick Your Queens</div>
+        <div style="font-size:13px;color:#444;line-height:1.6">Before the season starts, select queens from each bracket that you think will perform well. You earn points whenever a queen you picked does well — so choose wisely!</div>
+      </div>
 
-  <!-- Episode scoring -->
-  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 2 — Earn Points Each Episode</div>
+      <!-- Episode scoring -->
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 2 — Earn Points Each Episode</div>
 
-  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff6b9d;min-width:36px;text-align:center">5</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;color:#2d0036">🏆 Episode Win</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">Your queen wins the main challenge AND the lip sync — the full package.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff6b9d;min-width:36px;text-align:center">5</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">🏆 Episode Win</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Your queen wins the main challenge AND the lip sync — the full package.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff8c42;min-width:36px;text-align:center">3</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">🥈 Top 2 / Lip Sync</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Your queen wins the main challenge but loses the lip sync, or is called as a top performer.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#9c6fde;min-width:36px;text-align:center">0</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">✅ Safe / ❌ Bottom (Brackets)</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Safe queens and bottom queens earn no points during bracket rounds — only the standouts score.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fff3f3;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06);border-left:3px solid #e53935">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#e53935;min-width:36px;text-align:center">-2</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">👇 Bottom 2 (Semis only)</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">In the semifinals only, landing in the bottom 2 costs you 2 points. The stakes are higher — pick carefully!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bracket & semis -->
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 3 — Survive the Brackets</div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#00897b;min-width:36px;text-align:center">10</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">⬆️ Advances to Semis</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">The top 2 queens from each bracket advance to the semifinals. If your queen is one of them, that's a big bonus.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff6b9d;min-width:36px;text-align:center">5</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">🏆 Semi-Final Win or Top 2</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Semifinals follow the same scoring — wins and top 2 results in Eps 10–11 earn points too.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06);border-left:3px solid #e53935">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#e53935;min-width:36px;text-align:center">-2</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">👇 Semi-Final Bottom 2</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">If your queen lands in the bottom 2 during the semifinals, you lose 2 points. Choose wisely!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Crown & MVQ -->
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 4 — Bonus Points</div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:12px;background:#fffbe6;border-radius:12px;padding:12px 14px;border:2px solid #ffd700;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c8a000;min-width:36px;text-align:center">25</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">👑 Wins the Crown</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">If your queen wins All Stars 11, you get the biggest bonus in the game. Worth riding for!</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fff3e0;border-radius:12px;padding:12px 14px;border:2px solid #ff8c42;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c94f00;min-width:36px;text-align:center">2</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">⭐ MVQ Vote Match</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">After each episode, vote for who you think was the Most Valuable Queen. If your pick matches the group's consensus, you earn +2. Ties count for everyone.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#f4f4f4;border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:#888;line-height:1.6">
+        💡 <strong style="color:#2d0036">Quick example:</strong> You pick Morgan McMichaels. She wins her bracket episode (+5), advances to semis (+10), wins a semi (+5), then wins the crown (+25). That's <strong style="color:#9c6fde">45 points</strong> from one queen — plus any MVQ bonuses you earn along the way.
       </div>
     </div>
-
-    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff8c42;min-width:36px;text-align:center">3</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;color:#2d0036">🥈 Top 2 / Lip Sync</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">Your queen wins the main challenge but loses the lip sync, or is called as a top performer.</div>
-      </div>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#9c6fde;min-width:36px;text-align:center">0</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;color:#2d0036">✅ Safe / ❌ Bottom</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">Safe queens and bottom queens earn no points — only the standouts score.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bracket & semis -->
-  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 3 — Survive the Brackets</div>
-
-  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#00897b;min-width:36px;text-align:center">10</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;color:#2d0036">⬆️ Advances to Semis</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">The top 2 queens from each bracket advance to the semifinals. If your queen is one of them, that's a big bonus.</div>
-      </div>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#ff6b9d;min-width:36px;text-align:center">5</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;color:#2d0036">🏆 Semi-Final Win or Top 2</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">Semifinals follow the same scoring — wins and top 2 results in Eps 10–11 earn points too.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Crown & MVQ -->
-  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036;margin-bottom:8px">Step 4 — Bonus Points</div>
-
-  <div style="display:flex;flex-direction:column;gap:8px">
-    <div style="display:flex;align-items:center;gap:12px;background:#fffbe6;border-radius:12px;padding:12px 14px;border:2px solid #ffd700;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c8a000;min-width:36px;text-align:center">25</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;color:#2d0036">👑 Wins the Crown</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">If your queen wins All Stars 11, you get the biggest bonus in the game. Worth riding for!</div>
-      </div>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:12px;background:#fff3e0;border-radius:12px;padding:12px 14px;border:2px solid #ff8c42;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c94f00;min-width:36px;text-align:center">2</div>
-      <div>
-        <div style="font-weight:700;font-size:14px;color:#2d0036">⭐ MVQ Vote Match</div>
-        <div style="font-size:12px;color:#888;margin-top:2px">After each episode, vote for who you think was the Most Valuable Queen. If your pick matches the group's consensus, you earn +2. Ties count for everyone.</div>
-      </div>
-    </div>
-  </div>
-
-  <div style="background:#f4f4f4;border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:#888;line-height:1.6">
-    💡 <strong style="color:#2d0036">Quick example:</strong> You pick Morgan McMichaels. She wins her bracket episode (+5), advances to semis (+10), wins a semi (+5), then wins the crown (+25). That's <strong style="color:#9c6fde">45 points</strong> from one queen — plus any MVQ bonuses you earn along the way.
-  </div>
-</div>
-<p style="text-align:center;color:#bbb;font-size:12px;margin-top:20px">12 episodes · Premieres May 8, 2026 · Paramount+</p>
-```
-
+    <p style="text-align:center;color:#bbb;font-size:12px;margin-top:20px">12 episodes · Premieres May 8, 2026 · Paramount+</p>
   </div>
 
   <!-- PICKS -->
-
   <div id="view-picks" class="view">
     <h2>🗳️ Your Picks</h2>
     <div id="picks-locked-banner" style="display:none;background:#ffd0e8;border:2px solid #ff6b9d;border-radius:14px;padding:14px 18px;margin-bottom:20px">
@@ -278,7 +287,6 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   </div>
 
   <!-- RESULTS -->
-
   <div id="view-results" class="view">
     <h2>📋 Episode Results</h2>
     <div style="display:flex;gap:10px;margin-bottom:20px">
@@ -300,116 +308,107 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   </div>
 
   <!-- MVQ -->
-
   <div id="view-mvq" class="view">
     <h2>⭐ MVQ Weekly Vote</h2>
 
-```
-<!-- HOW IT WORKS -->
-<div class="card" style="margin-bottom:20px;background:#e8d8ff;border:2px solid #9c6fde">
-  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:10px;color:#4a148c">📖 How It Works</div>
-  <div style="font-size:14px;color:#333;line-height:1.7">
-    <p style="margin-bottom:8px">After each episode, vote for the queen you think was the <strong>Most Valuable Queen</strong> — the one who impressed you most, even if she didn't win.</p>
-    <p style="margin-bottom:8px">🗓️ <strong>Voting closes the following Friday at 5:00pm MT</strong> — right when the next episode drops. You have a full week to watch and vote.</p>
-    <p style="margin-bottom:8px">⭐ <strong>+2 points</strong> if your pick matches the group consensus. In a tie, everyone who voted for any tied queen gets +2.</p>
-    <p style="margin-bottom:8px">🔒 <strong>Results hidden while voting is open</strong> — you'll only see how many people have voted, not who they picked.</p>
-    <p>👤 <strong>To vote:</strong> scroll down, tap your name, pick your queen, hit Submit.</p>
-  </div>
-</div>
-
-<!-- VOTE SECTION -->
-<div id="mvq-vote-section">
-  <div id="mvq-no-open" style="display:none">
-    <p class="empty">No vote is currently open.<br><span style="font-size:13px">Votes open automatically each Friday at 5pm MT when an episode drops.</span></p>
-  </div>
-  <div id="mvq-open-vote"></div>
-</div>
-
-<!-- PAST VOTES -->
-<div style="margin-top:28px">
-  <h2 style="font-size:20px;margin-bottom:12px">📜 Past Votes</h2>
-  <div id="mvq-past-votes"><div class="spinner"></div></div>
-</div>
-
-<!-- ADMIN PANEL -->
-<div style="margin-top:28px;padding-top:20px;border-top:2px solid var(--purple-light)">
-  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:12px;color:#bbb">🔐 Admin</div>
-  <div id="mvq-admin-locked">
-    <div style="display:flex;gap:10px">
-      <input type="password" id="mvq-admin-pw" placeholder="Admin password…" onkeydown="if(event.key==='Enter')unlockMvqAdmin()" />
-      <button class="btn btn-purple" onclick="unlockMvqAdmin()">Unlock</button>
-    </div>
-  </div>
-  <div id="mvq-admin-panel" style="display:none">
-    <p style="color:#888;font-size:13px;margin-bottom:12px">Votes open automatically every Friday at 5pm MT and close Monday at 11:59pm MT. Use the controls below if you need to manually override.</p>
-    <div id="mvq-admin-open-actions" style="display:none;margin-bottom:12px">
-      <button class="btn btn-gradient" style="width:100%" onclick="closeMvqVote()">🔒 Close Current Vote & Reveal Results</button>
-    </div>
-    <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px;color:#aaa;border-color:#ddd;font-size:13px" onclick="document.getElementById('mvq-override-panel').style.display=document.getElementById('mvq-override-panel').style.display==='none'?'block':'none'">⚙️ Manual override</button>
-    <div id="mvq-override-panel" style="display:none;margin-top:12px;padding:14px;background:#f9f9f9;border-radius:12px">
-      <div style="font-size:13px;color:#888;margin-bottom:8px">Manually open a vote for a specific episode:</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <input type="text" id="mvq-new-episode" placeholder="e.g. Episode 3" style="flex:1;min-width:140px" />
-        <input type="text" id="mvq-new-deadline" placeholder="e.g. Wed May 14 at 11:59pm MT" style="flex:1;min-width:140px" />
+    <!-- HOW IT WORKS -->
+    <div class="card" style="margin-bottom:20px;background:#e8d8ff;border:2px solid #9c6fde">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:10px;color:#4a148c">📖 How It Works</div>
+      <div style="font-size:14px;color:#333;line-height:1.7">
+        <p style="margin-bottom:8px">After each episode, vote for the queen you think was the <strong>Most Valuable Queen</strong> — the one who impressed you most, even if she didn't win.</p>
+        <p style="margin-bottom:8px">🗓️ <strong>Voting closes the following Friday at 5:00pm MT</strong> — right when the next episode drops. You have a full week to watch and vote.</p>
+        <p style="margin-bottom:8px">⭐ <strong>+2 points</strong> if your pick matches the group consensus. In a tie, everyone who voted for any tied queen gets +2.</p>
+        <p style="margin-bottom:8px">🔒 <strong>Results hidden while voting is open</strong> — you'll only see how many people have voted, not who they picked.</p>
+        <p>👤 <strong>To vote:</strong> scroll down, tap your name, pick your queen, hit Submit.</p>
       </div>
-      <button class="btn btn-purple" style="width:100%" onclick="openMvqVote()">📬 Force Open Vote</button>
     </div>
-  </div>
-</div>
-```
 
+    <!-- VOTE SECTION -->
+    <div id="mvq-vote-section">
+      <div id="mvq-no-open" style="display:none">
+        <p class="empty">No vote is currently open.<br><span style="font-size:13px">Votes open automatically each Friday at 5pm MT when an episode drops.</span></p>
+      </div>
+      <div id="mvq-open-vote"></div>
+    </div>
+
+    <!-- PAST VOTES -->
+    <div style="margin-top:28px">
+      <h2 style="font-size:20px;margin-bottom:12px">📜 Past Votes</h2>
+      <div id="mvq-past-votes"><div class="spinner"></div></div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div style="margin-top:28px;padding-top:20px;border-top:2px solid var(--purple-light)">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;margin-bottom:12px;color:#bbb">🔐 Admin</div>
+      <div id="mvq-admin-locked">
+        <div style="display:flex;gap:10px">
+          <input type="password" id="mvq-admin-pw" placeholder="Admin password…" onkeydown="if(event.key==='Enter')unlockMvqAdmin()" />
+          <button class="btn btn-purple" onclick="unlockMvqAdmin()">Unlock</button>
+        </div>
+      </div>
+      <div id="mvq-admin-panel" style="display:none">
+        <p style="color:#888;font-size:13px;margin-bottom:12px">Votes open automatically every Friday at 5pm MT and close Monday at 11:59pm MT. Use the controls below if you need to manually override.</p>
+        <div id="mvq-admin-open-actions" style="display:none;margin-bottom:12px">
+          <button class="btn btn-gradient" style="width:100%" onclick="closeMvqVote()">🔒 Close Current Vote & Reveal Results</button>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px;color:#aaa;border-color:#ddd;font-size:13px" onclick="document.getElementById('mvq-override-panel').style.display=document.getElementById('mvq-override-panel').style.display==='none'?'block':'none'">⚙️ Manual override</button>
+        <div id="mvq-override-panel" style="display:none;margin-top:12px;padding:14px;background:#f9f9f9;border-radius:12px">
+          <div style="font-size:13px;color:#888;margin-bottom:8px">Manually open a vote for a specific episode:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+            <input type="text" id="mvq-new-episode" placeholder="e.g. Episode 3" style="flex:1;min-width:140px" />
+            <input type="text" id="mvq-new-deadline" placeholder="e.g. Wed May 14 at 11:59pm MT" style="flex:1;min-width:140px" />
+          </div>
+          <button class="btn btn-purple" style="width:100%" onclick="openMvqVote()">📬 Force Open Vote</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- CHAT -->
-
   <div id="view-chat" class="view">
     <h2>💅 Reading Room</h2>
 
-```
-<!-- Message composer -->
-<div style="background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:20px;box-shadow:0 2px 16px rgba(0,0,0,0.07)">
-  <!-- Player selector -->
-  <div id="chat-player-select" style="margin-bottom:12px">
-    <p style="color:#888;font-size:13px;margin-bottom:8px">Who are you?</p>
-    <div id="chat-player-pills" class="pill-row"></div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <input type="text" id="chat-name-input" placeholder="Or type your name…" style="flex:1"
-        onkeydown="if(event.key==='Enter')setChatPlayer(document.getElementById('chat-name-input').value)" />
-      <button class="btn btn-purple btn-sm" onclick="setChatPlayer(document.getElementById('chat-name-input').value)">Set</button>
-    </div>
-  </div>
+    <!-- Message composer -->
+    <div style="background:#fff;border-radius:18px;padding:16px 18px;margin-bottom:20px;box-shadow:0 2px 16px rgba(0,0,0,0.07)">
+      <!-- Player selector -->
+      <div id="chat-player-select" style="margin-bottom:12px">
+        <p style="color:#888;font-size:13px;margin-bottom:8px">Who are you?</p>
+        <div id="chat-player-pills" class="pill-row"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input type="text" id="chat-name-input" placeholder="Or type your name…" style="flex:1"
+            onkeydown="if(event.key==='Enter')setChatPlayer(document.getElementById('chat-name-input').value)" />
+          <button class="btn btn-purple btn-sm" onclick="setChatPlayer(document.getElementById('chat-name-input').value)">Set</button>
+        </div>
+      </div>
 
-  <!-- Message box (shown after name selected) -->
-  <div id="chat-compose" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036" id="chat-sending-as"></span>
-      <button style="background:none;border:none;cursor:pointer;color:#bbb;font-size:13px" onclick="resetChatPlayer()">← Change</button>
+      <!-- Message box (shown after name selected) -->
+      <div id="chat-compose" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036" id="chat-sending-as"></span>
+          <button style="background:none;border:none;cursor:pointer;color:#bbb;font-size:13px" onclick="resetChatPlayer()">← Change</button>
+        </div>
+        <textarea id="chat-message-input" placeholder="The library is open — read your friends, spill the T, give us the drama… 💅"
+          style="width:100%;padding:12px 14px;border-radius:12px;border:2px solid #c8b0f0;font-family:Georgia,serif;font-size:15px;resize:none;outline:none;min-height:80px;color:#2d0036;background:#fff"
+          onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')sendChatMessage()"
+          oninput="handleChatInput(this)"></textarea>
+        <!-- @mention picker -->
+        <div id="chat-mention-picker" style="display:none;background:#fff;border:2px solid #9c6fde;border-radius:12px;padding:6px;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,0.12)"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <span style="font-size:12px;color:#bbb">Cmd+Enter to send</span>
+          <button id="chat-send-btn" class="btn btn-gradient btn-sm" onclick="sendChatMessage()">Send 💬</button>
+        </div>
+      </div>
     </div>
-    <textarea id="chat-message-input" placeholder="The library is open — read your friends, spill the T, give us the drama… 💅"
-      style="width:100%;padding:12px 14px;border-radius:12px;border:2px solid #c8b0f0;font-family:Georgia,serif;font-size:15px;resize:none;outline:none;min-height:80px;color:#2d0036;background:#fff"
-      onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')sendChatMessage()"
-      oninput="handleChatInput(this)"></textarea>
-    <!-- @mention picker -->
-    <div id="chat-mention-picker" style="display:none;background:#fff;border:2px solid #9c6fde;border-radius:12px;padding:6px;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,0.12)"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-      <span style="font-size:12px;color:#bbb">Cmd+Enter to send</span>
-      <button id="chat-send-btn" class="btn btn-gradient btn-sm" onclick="sendChatMessage()">Send 💬</button>
+
+    <!-- Feed -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#2d0036">Messages</div>
+      <button class="btn btn-outline btn-sm" onclick="loadChat()">↻ Refresh</button>
     </div>
-  </div>
-</div>
-
-<!-- Feed -->
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-  <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#2d0036">Messages</div>
-  <button class="btn btn-outline btn-sm" onclick="loadChat()">↻ Refresh</button>
-</div>
-<div id="chat-feed"><div class="spinner"></div></div>
-```
-
+    <div id="chat-feed"><div class="spinner"></div></div>
   </div>
 
   <!-- POWER RANKINGS -->
-
   <div id="view-rankings" class="view">
     <h2>📊 Queen Power Rankings</h2>
     <p style="color:#888;font-size:13px;margin-bottom:20px">How the group rates each queen — ranked by pick popularity and points earned so far.</p>
@@ -417,14 +416,12 @@ input[type=text]:focus, input[type=password]:focus { border-color:#9c6fde; }
   </div>
 
   <!-- SEASON WRAP -->
-
   <div id="view-wrap" class="view">
     <h2>🎬 Season Wrap</h2>
     <div id="wrap-content"><div class="spinner"></div></div>
   </div>
 
   <!-- LEADERBOARD -->
-
   <div id="view-leaderboard" class="view">
     <h2>🏆 Leaderboard</h2>
     <button class="btn btn-outline btn-sm" style="margin-bottom:16px" onclick="loadLeaderboard()">↻ Refresh</button>
@@ -489,11 +486,20 @@ const SEP = ["Ep 10","Ep 11"];
 
 // Episode result options — win/top2 are mutually exclusive performance results
 // elim is independent (a queen can win a lip sync but still be eliminated in AS format)
+// Bracket episode options (Eps 1-9)
 const EP_OPTS = [
-  { key:"win",  label:"🏆 Win",   pts:5, color:"#ff6b9d" },
-  { key:"top2", label:"🥈 Top 2", pts:3, color:"#ff8c42" },
-  { key:"safe", label:"✅ Safe",  pts:0, color:"#4caf50" },
-  { key:"elim", label:"❌ Elim",  pts:0, color:"#bbb"    },
+  { key:"win",    label:"🏆 Win",      pts: 5, color:"#ff6b9d" },
+  { key:"top2",   label:"🥈 Top 2",   pts: 3, color:"#ff8c42" },
+  { key:"safe",   label:"✅ Safe",    pts: 0, color:"#4caf50" },
+  { key:"elim",   label:"❌ Elim",    pts: 0, color:"#bbb"    },
+];
+
+// Semi-final episode options (Eps 10-11) — no Top 2, adds Bottom 2 penalty
+const SEMI_EP_OPTS = [
+  { key:"win",    label:"🏆 Win",      pts: 5,  color:"#ff6b9d" },
+  { key:"safe",   label:"✅ Safe",    pts: 0,  color:"#4caf50" },
+  { key:"bottom", label:"👇 Bottom 2", pts:-2,  color:"#e53935" },
+  { key:"elim",   label:"❌ Elim",    pts: 0,  color:"#bbb"    },
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -592,10 +598,11 @@ function getR(qid) {
 function calcPts(qid) {
   const r = getR(qid);
   let pts = 0;
-  [...r.episodes, ...r.semiEpisodes].forEach(ep => {
-    EP_OPTS.forEach(o => {
-      if (ep[o.key]) pts += o.pts;
-    });
+  r.episodes.forEach(ep => {
+    EP_OPTS.forEach(o => { if (ep && ep[o.key]) pts += o.pts; });
+  });
+  r.semiEpisodes.forEach(ep => {
+    SEMI_EP_OPTS.forEach(o => { if (ep && ep[o.key]) pts += o.pts; });
   });
   if (r.advances) pts += 10;
   if (r.finalist) pts += 25;
@@ -859,17 +866,18 @@ function renderResultsFinale() {
 
 // Build an episode grid (shared by brackets and semis)
 function buildEpGrid(qid, epArr, labels, isSemi) {
+  const opts   = isSemi ? SEMI_EP_OPTS : EP_OPTS;
   const gridId = isSemi ? `semi-grid-${qid}` : `grid-${qid}`;
   let html = `<div class="ep-grid" style="grid-template-columns:repeat(${labels.length},1fr)" id="${gridId}">`;
   labels.forEach((lbl, i) => {
-    const cur = epArr[i] || {};  // object: { win: bool, elim: bool, ... }
+    const cur = epArr[i] || {};
     html += `<div class="ep-col"><div class="ep-label">${lbl}</div>`;
-    EP_OPTS.forEach(o => {
+    opts.forEach(o => {
       const on = !!cur[o.key];
       html += `<button class="ep-btn${on?" on":""}" id="epbtn-${qid}-${isSemi?"s":"b"}-${i}-${o.key}"
         style="${on?`border-color:${o.color};background:${o.color}`:""}"
         onclick="setEp('${qid}',${i},'${o.key}',${isSemi})">
-        ${o.label}${on?` +${o.pts}`:""}
+        ${o.label}${on?` ${o.pts>0?"+":""}${o.pts}`:""} 
       </button>`;
     });
     html += `</div>`;
@@ -887,14 +895,17 @@ function setEp(qid, idx, key, isSemi) {
   while (arr.length < (isSemi ? 2 : 3)) arr.push({});
   const cur = { ...(arr[idx] || {}) };
 
-  // win/top2/safe are mutually exclusive performance results
-  // elim is independent — can coexist with win (AS format: win lip sync but still go home)
+  // win/top2/safe/bottom are mutually exclusive performance results
+  // elim is independent
   if (key === "elim") {
-    cur.elim = !cur.elim; // just toggle
+    cur.elim = !cur.elim;
   } else {
-    // Toggle the clicked key; clear other performance keys if turning ON
     const wasOn = !!cur[key];
-    if (!wasOn) { delete cur.win; delete cur.top2; delete cur.safe; }
+    if (!wasOn) {
+      // Clear all other performance keys
+      delete cur.win; delete cur.top2; delete cur.safe;
+      delete cur.bottom; // semi-only
+    }
     cur[key] = wasOn ? undefined : true;
     if (cur[key] === undefined) delete cur[key];
   }
@@ -1253,7 +1264,6 @@ async function loadLeaderboard() {
             </div>
           </div>
           <div>${queenRows}${mvqRow}</div>
-          ${renderBadges(badges)}
         </div>
       </div>`;
     }).join("");
@@ -2484,7 +2494,6 @@ async function loadWrap() {
             Best pick: <strong style="color:#2d0036">${bq.emoji} ${bq.name}</strong> (+${bestQueen.pts} pts)
             ${p.mvqPts > 0 ? `· MVQ bonus: <strong style="color:#c94f00">+${p.mvqPts}</strong>` : ""}
           </div>` : ""}
-          ${renderBadges(wrapBadges)}
         </div>`;
       }).join("")}`;
 
@@ -2504,6 +2513,5 @@ window.addEventListener("DOMContentLoaded", () => {
   renderPicksExistingPlayers();
 });
 </script>
-
 </body>
 </html>
