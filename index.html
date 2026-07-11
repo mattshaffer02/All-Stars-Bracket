@@ -1658,7 +1658,7 @@ function renderMvqOpen() {
   }).join("");
 }
 
-function selectMvqPlayer(vi, name) {
+async function selectMvqPlayer(vi, name) {
   if (!mvqVoteState[vi]) mvqVoteState[vi] = {};
   mvqVoteState[vi].player = name;
   mvqVoteState[vi].queen  = null;
@@ -1690,7 +1690,19 @@ function selectMvqPlayer(vi, name) {
     }
     mvqVoteState[vi].picks = existingPicks;
 
-    const eligibleQueens = getMvqEligibleQueens(vote.episode);
+    // Get eligible queens — fetch results first if needed to ensure advances flags are set
+    let eligibleQueens = getMvqEligibleQueens(vote.episode);
+    if (!eligibleQueens.length || eligibleQueens.length === ALL_QUEENS.length) {
+      // Results may not be loaded — fetch them now
+      try {
+        const rd = await apiFetch({ action:"getResults" });
+        results = parseResults(rd.results || {});
+        eligibleQueens = getMvqEligibleQueens(vote.episode);
+      } catch(e) {}
+    }
+    // Final fallback — show all queens so the list is never empty
+    if (!eligibleQueens.length) eligibleQueens = ALL_QUEENS;
+
     const list = document.getElementById(`mvq-queen-list-${vi}`);
 
     list.innerHTML = `
