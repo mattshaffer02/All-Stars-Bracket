@@ -248,6 +248,14 @@
             <div style="font-size:12px;color:#888;margin-top:2px">After each episode, vote for who you think was the Most Valuable Queen. If your pick matches the group's consensus, you earn +2. Ties count for everyone.</div>
           </div>
         </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fffbe6;border-radius:12px;padding:12px 14px;border:2px solid #ffd700;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c8a000;min-width:36px;text-align:center">5</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#2d0036">👑 Top 3 Prediction (Finale)</div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Predict who makes the finale Top 3. Each correct queen earns you +5 pts — up to +15 if you nail all three!</div>
+          </div>
+        </div>
       </div>
 
       <div style="background:#f4f4f4;border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:#888;line-height:1.6">
@@ -1228,9 +1236,11 @@ async function loadLeaderboard() {
     mvqPastVotesLB.forEach(vote => {
       const votes   = vote.votes   || {};
       const winners = vote.winners || [];
+      const isTop3  = (vote.episode || "").includes("Top 3");
+      const pts     = isTop3 ? 5 : 2;
       Object.entries(votes).forEach(([player, qid]) => {
         if (winners.includes(qid)) {
-          mvqBonus[player] = (mvqBonus[player] || 0) + 2;
+          mvqBonus[player] = (mvqBonus[player] || 0) + pts;
         }
       });
     });
@@ -1954,11 +1964,15 @@ async function closeMvqVote(episode) {
     // Step 2: Calculate winners
     const tally = {};
     Object.values(allVotes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
-    const maxVotes   = Math.max(...Object.values(tally), 0);
-    const winners    = maxVotes > 0 ? Object.keys(tally).filter(qid => tally[qid] === maxVotes) : [];
-    const bonusPlayers = Object.entries(allVotes)
+    const maxVotes = Math.max(...Object.values(tally), 0);
+    // For Top 3 votes: winners = all queens who received votes (admin selects which are correct)
+    // For regular MVQ: winners = queen(s) with most votes
+    const isTop3Vote = episode.includes("Top 3");
+    const winners = maxVotes > 0 ? Object.keys(tally).filter(qid => tally[qid] === maxVotes) : [];
+    const bonusPlayers = [];
+    Object.entries(allVotes)
       .filter(([,qid]) => winners.includes(qid))
-      .map(([player]) => player);
+      .forEach(([player]) => bonusPlayers.push(player));
 
     // Step 3: Save closed state to Sheet
     const res = await apiPost({ action:"closeMvqVote", episode, winners:JSON.stringify(winners), bonusPlayers:JSON.stringify(bonusPlayers), votes:JSON.stringify(allVotes) });
@@ -2447,9 +2461,11 @@ async function loadWrap() {
     // Player scores + MVQ bonuses
     const mvqBonus = {};
     pastVotes.forEach(vote => {
+      const isTop3 = (vote.episode || "").includes("Top 3");
+      const pts    = isTop3 ? 5 : 2;
       Object.entries(vote.votes || {}).forEach(([player, qid]) => {
         if ((vote.winners || []).includes(qid)) {
-          mvqBonus[player] = (mvqBonus[player] || 0) + 2;
+          mvqBonus[player] = (mvqBonus[player] || 0) + pts;
         }
       });
     });
@@ -2794,120 +2810,171 @@ function renderAnalyticsDashboard(el, events) {
 }
 
 // ── SEASON WRAP ROAST ─────────────────────────────────────────────────────────
-async function generateRoast() {
+function generateRoast() {
   const el = document.getElementById("roast-content");
-  el.innerHTML = '<div class="spinner"></div><p style="text-align:center;color:#888;font-size:13px;margin-top:8px">The library is being built… this may take a moment 📚</p>';
+  el.innerHTML = '<div class="spinner"></div>';
 
-  try {
-    // Gather player data for roasting
-    const [playersData, resultsData, mvqData, chatData] = await Promise.all([
-      apiFetch({ action:"getAll" }),
-      apiFetch({ action:"getResults" }),
-      apiFetch({ action:"getMvq" }).catch(()=>({past:[]})),
-      apiFetch({ action:"getChat" }).catch(()=>({messages:[]})),
-    ]);
+  // Gather all player stats from in-memory data
+  setTimeout(async () => {
+    try {
+      const [playersData, mvqData, chatData] = await Promise.all([
+        apiFetch({ action:"getAll" }),
+        apiFetch({ action:"getMvq" }).catch(()=>({past:[]})),
+        apiFetch({ action:"getChat" }).catch(()=>({messages:[]})),
+      ]);
 
-    results = parseResults(resultsData.results || {});
-    const players  = playersData.players || [];
-    const pastVotes = mvqData.past || [];
-    const messages  = chatData.messages || [];
+      const players   = playersData.players || [];
+      const pastVotes = mvqData.past || [];
+      const messages  = chatData.messages || [];
 
-    // MVQ correct per player
-    const mvqCorrect = {};
-    const mvqTotal   = {};
-    pastVotes.forEach(vote => {
-      Object.entries(vote.votes || {}).forEach(([player, qid]) => {
-        mvqTotal[player] = (mvqTotal[player]||0) + 1;
-        if ((vote.winners||[]).includes(qid)) mvqCorrect[player] = (mvqCorrect[player]||0)+1;
+      const mvqCorrect = {}, mvqTotal = {}, mvqBonus = {};
+      pastVotes.forEach(vote => {
+        const isTop3 = (vote.episode||"").includes("Top 3");
+        const pts    = isTop3 ? 5 : 2;
+        Object.entries(vote.votes||{}).forEach(([p,qid]) => {
+          mvqTotal[p] = (mvqTotal[p]||0)+1;
+          if ((vote.winners||[]).includes(qid)) {
+            mvqCorrect[p] = (mvqCorrect[p]||0)+1;
+            mvqBonus[p]   = (mvqBonus[p]||0)+pts;
+          }
+        });
       });
-    });
 
-    // Chat count per player
-    const chatCount = {};
-    messages.forEach(m => { chatCount[m.player] = (chatCount[m.player]||0)+1; });
+      const chatCount = {};
+      messages.forEach(m => { chatCount[m.player] = (chatCount[m.player]||0)+1; });
 
-    // Scores
-    const mvqBonus = {};
-    pastVotes.forEach(vote => {
-      Object.entries(vote.votes||{}).forEach(([p,qid])=>{
-        if((vote.winners||[]).includes(qid)) mvqBonus[p]=(mvqBonus[p]||0)+2;
-      });
-    });
+      const scored = players.map(p => ({
+        name:         p.player,
+        queens:       (p.queens||[]).map(qid=>ALL_QUEENS.find(q=>q.id===qid)?.name).filter(Boolean),
+        score:        p.queens.reduce((s,qid)=>s+calcPts(qid),0)+(mvqBonus[p.player]||0),
+        mvqCorrect:   mvqCorrect[p.player]||0,
+        mvqTotal:     mvqTotal[p.player]||0,
+        chatMsgs:     chatCount[p.player]||0,
+        pickedWinner: (p.queens||[]).some(qid=>getR(qid).finalist),
+        negPts:       (p.queens||[]).reduce((s,qid)=>{ const r=getR(qid); return s+[...r.semiEpisodes].filter(e=>e?.bottom).length; },0),
+        queensCount:  (p.queens||[]).length,
+      })).sort((a,b)=>b.score-a.score);
 
-    const scored = players.map(p => ({
-      name:       p.player,
-      queens:     (p.queens||[]).map(qid => ALL_QUEENS.find(q=>q.id===qid)?.name).filter(Boolean),
-      score:      p.queens.reduce((s,qid)=>s+calcPts(qid),0) + (mvqBonus[p.player]||0),
-      mvqCorrect: mvqCorrect[p.player] || 0,
-      mvqTotal:   mvqTotal[p.player]   || 0,
-      chatMsgs:   chatCount[p.player]  || 0,
-      pickedWinner: (p.queens||[]).some(qid => getR(qid).finalist),
-    })).sort((a,b)=>b.score-a.score);
+      if (!scored.length) {
+        el.innerHTML = '<p style="color:#bbb;text-align:center">No players yet.</p>';
+        return;
+      }
 
-    const winner   = scored[0];
-    const loser    = scored[scored.length-1];
-    const mostMVQ  = [...scored].sort((a,b)=>b.mvqCorrect-a.mvqCorrect)[0];
-    const leastMVQ = [...scored].sort((a,b)=>a.mvqCorrect-b.mvqCorrect)[0];
-    const chatQueen = [...scored].sort((a,b)=>b.chatMsgs-a.chatMsgs)[0];
-    const silent    = [...scored].sort((a,b)=>a.chatMsgs-b.chatMsgs)[0];
+      // ── Award definitions — each picks winner based on stats ──────────────
+      const sorted = {
+        byScore:       [...scored].sort((a,b)=>b.score-a.score),
+        byScoreAsc:    [...scored].sort((a,b)=>a.score-b.score),
+        byMvqCorrect:  [...scored].sort((a,b)=>b.mvqCorrect-a.mvqCorrect),
+        byMvqWorst:    [...scored].sort((a,b)=>a.mvqCorrect-b.mvqCorrect),
+        byChat:        [...scored].sort((a,b)=>b.chatMsgs-a.chatMsgs),
+        bySilent:      [...scored].sort((a,b)=>a.chatMsgs-b.chatMsgs),
+        byQueens:      [...scored].sort((a,b)=>b.queensCount-a.queensCount),
+        byNegPts:      [...scored].sort((a,b)=>b.negPts-a.negPts),
+      };
 
-    const prompt = `You are the host of a fun fake awards ceremony for a RuPaul's All Stars 11 pick'em competition among friends. Write short, witty, loving roasts for each player. Be playful, reference Drag Race culture, and keep it fun — not mean. Use drag slang naturally.
+      const winner   = sorted.byScore[0];
+      const lastPlace = sorted.byScoreAsc[0];
+      const mvqOracle = sorted.byMvqCorrect[0];
+      const mvqBlind  = sorted.byMvqWorst[0];
+      const chatty    = sorted.byChat[0];
+      const quiet     = sorted.bySilent[0];
+      const penalized = sorted.byNegPts[0];
+      const hasWinner = scored.find(p=>p.pickedWinner);
+      const mvqRate   = p => p.mvqTotal > 0 ? Math.round(p.mvqCorrect/p.mvqTotal*100) : 0;
 
-Here are the players and their stats:
-${scored.map(p => `- ${p.name}: Score ${p.score}pts, picked queens: ${p.queens.join(", ")}, MVQ correct: ${p.mvqCorrect}/${p.mvqTotal}, chat messages: ${p.chatMsgs}, picked the winner: ${p.pickedWinner}`).join("\n")}
+      const AWARD_DEFS = [
+        {
+          emoji:"👑", color:"#ffd700",
+          award:"Miss All Stars",
+          winner: winner,
+          blurb: p => `${p.name} dominated the leaderboard with ${p.score} points and a lineup of queens that just kept delivering. Sickening, strategic, and sickeningly strategic.`
+        },
+        {
+          emoji:"💀", color:"#e53935",
+          award:"The One Who Got Shafted",
+          winner: lastPlace,
+          blurb: p => `With ${p.score} points, ${p.name} proved that it's not about the destination — it's about the journey. A long, painful journey. Condragulations, bestie.`
+        },
+        {
+          emoji:"👁️", color:"#9c6fde",
+          award:"Oracle of the Werk Room",
+          winner: mvqOracle,
+          blurb: p => `${p.name} correctly predicted the MVQ ${p.mvqCorrect} out of ${p.mvqTotal} times (${mvqRate(p)}%). Either psychic, or has been reading the Fandom wiki. We're not asking questions.`
+        },
+        {
+          emoji:"🙈", color:"#ff8c42",
+          award:"Blind as a Bat, Honey",
+          winner: mvqBlind,
+          blurb: p => `Only ${p.mvqCorrect} correct MVQ prediction${p.mvqCorrect!==1?"s":""} out of ${p.mvqTotal} — ${p.name} has been watching a different show entirely. Bold strategy. Did not pay off.`
+        },
+        {
+          emoji:"💬", color:"#e91e8c",
+          award:"Reading Room Hostess",
+          winner: chatty,
+          blurb: p => `With ${p.chatMsgs} messages in the Reading Room, ${p.name} kept the library open all season. We see you. We are slightly concerned. We love you.`
+        },
+        {
+          emoji:"🤫", color:"#607d8b",
+          award:"Silent But Deadly",
+          winner: quiet,
+          blurb: p => `${p.chatMsgs === 0 ? `${p.name} sent zero messages in the Reading Room all season.` : `${p.name} managed just ${p.chatMsgs} message${p.chatMsgs!==1?"s":""} in the Reading Room.`} A lurker of the highest order. Watching. Plotting. Winning? (Results may vary.)`
+        },
+        {
+          emoji:"💸", color:"#00897b",
+          award:"Most Efficient Slay",
+          winner: [...scored].sort((a,b) => {
+            const avgA = a.queens.length ? a.score / a.queens.length : 0;
+            const avgB = b.queens.length ? b.score / b.queens.length : 0;
+            return avgB - avgA;
+          })[0],
+          blurb: p => {
+            const avg = p.queens.length ? Math.round(p.score / p.queens.length * 10) / 10 : 0;
+            return `${p.name} averaged ${avg} points per queen — the highest efficiency in the group. Quality over quantity. Every pick earned its keep. A true connoisseur of the werk room.`;
+          }
+        },
+        ...(hasWinner ? [{
+          emoji:"🌟", color:"#ff6b9d",
+          award:"Star Maker",
+          winner: hasWinner,
+          blurb: p => `${p.name} picked the season winner before a single episode aired. Talent? Luck? Inside information? We'll never know. What we do know is they will never let anyone forget it.`
+        }] : []),
+        ...(penalized && penalized.negPts > 0 ? [{
+          emoji:"👇", color:"#e53935",
+          award:"Bottom of the Barrel",
+          winner: penalized,
+          blurb: p => `${p.name}'s queens landed in the Bottom 2 during the semis ${p.negPts} time${p.negPts!==1?"s":""}, costing them precious points. The semifinals giveth and the semifinals taketh away.`
+        }] : []),
+        {
+          emoji:"🎭", color:"#795548",
+          award:"Most Likely to Rewatch the Season Immediately",
+          winner: sorted.byScore[Math.floor(scored.length/2)],
+          blurb: p => `${p.name} finished right in the middle of the pack — not first, not last, just vibing. The Switzerland of this pick'em. Peaceful. Neutral. Unbothered.`
+        },
+      ];
 
-The leaderboard winner is ${winner.name}.
-The person at the bottom is ${loser.name}.
-Best MVQ predictor: ${mostMVQ.name} (${mostMVQ.mvqCorrect} correct).
-Most active in Reading Room: ${chatQueen.name} (${chatQueen.chatMsgs} messages).
-Most silent: ${silent.name} (${silent.chatMsgs} messages).
+      const colors = ["#ffd700","#e53935","#9c6fde","#ff8c42","#e91e8c","#607d8b","#00897b","#ff6b9d","#795548","#2196f3"];
 
-Return ONLY a JSON array (no markdown, no explanation) with this structure:
-[
-  { "player": "Name", "award": "Award Title", "roast": "2-3 sentence roast that's funny and specific to their stats" },
-  ...
-]
-
-Make sure every player gets an award. Award titles should be creative and drag-themed. Examples: "Miss Congeniality", "Oracle of the Werk Room", "Silent But Deadly", "The Eternal Optimist", etc.`;
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-
-    const data  = await response.json();
-    const text  = data.content?.[0]?.text || "";
-    const clean = text.replace(/```json|```/g,"").trim();
-    const awards = JSON.parse(clean);
-
-    const colors = ["#ff6b9d","#ff8c42","#9c6fde","#00897b","#e91e8c","#2196f3","#795548","#607d8b","#ff5722","#009688"];
-
-    el.innerHTML = `
-      <div style="background:linear-gradient(135deg,#ffd700,#ff8c42);border-radius:16px;padding:16px 20px;text-align:center;margin-bottom:20px">
-        <div style="font-size:36px;margin-bottom:4px">👑</div>
-        <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:18px;color:#2d0036">The Werk Room Awards</div>
-        <div style="font-size:13px;color:#2d0036;opacity:.8;margin-top:4px">All Stars 11 Pick 'Em Season</div>
-      </div>
-      ${awards.map((a,i) => `
-        <div style="background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);border-left:4px solid ${colors[i%colors.length]}">
-          <div style="font-size:12px;font-weight:700;color:${colors[i%colors.length]};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🏅 ${a.award}</div>
-          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:17px;color:#2d0036;margin-bottom:8px">${a.player}</div>
-          <div style="font-size:14px;color:#555;line-height:1.6">${a.roast}</div>
-        </div>`).join("")}
-      <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="generateRoast()">🎭 Regenerate Awards</button>
-    `;
-  } catch(e) {
-    el.innerHTML = `
-      <div style="background:#fff3f3;border-radius:12px;padding:16px;color:#c00;font-size:13px;margin-bottom:12px">
-        Couldn't generate awards: ${e.message}
-      </div>
-      <button class="btn btn-gradient" style="width:100%" onclick="generateRoast()">Try Again</button>`;
-  }
+      el.innerHTML = `
+        <div style="background:linear-gradient(135deg,#ffd700,#ff8c42);border-radius:16px;padding:16px 20px;text-align:center;margin-bottom:20px">
+          <div style="font-size:36px;margin-bottom:4px">👑</div>
+          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:18px;color:#2d0036">The Werk Room Awards</div>
+          <div style="font-size:13px;color:#2d0036;opacity:.8;margin-top:4px">All Stars 11 Pick 'Em · Final Season Honors</div>
+        </div>
+        ${AWARD_DEFS.filter(a=>a.winner).map((a,i) => `
+          <div style="background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);border-left:4px solid ${a.color}">
+            <div style="font-size:12px;font-weight:700;color:${a.color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${a.emoji} ${a.award}</div>
+            <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:17px;color:#2d0036;margin-bottom:8px">${a.winner.name}</div>
+            <div style="font-size:14px;color:#555;line-height:1.6">${a.blurb(a.winner)}</div>
+          </div>`).join("")}
+      `;
+    } catch(e) {
+      el.innerHTML = `
+        <div style="background:#fff3f3;border-radius:12px;padding:16px;color:#c00;font-size:13px;margin-bottom:12px">
+          Couldn't load awards: ${e.message}
+        </div>
+        <button class="btn btn-gradient" style="width:100%" onclick="generateRoast()">Try Again</button>`;
+    }
+  }, 100);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
