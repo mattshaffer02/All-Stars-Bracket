@@ -420,6 +420,13 @@
   <div id="view-wrap" class="view">
     <h2>🎬 Season Wrap</h2>
     <div id="wrap-content"><div class="spinner"></div></div>
+    <div style="margin-top:24px;border-top:2px solid #e8d8ff;padding-top:24px">
+      <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:20px;color:#2d0036;margin-bottom:4px">🏆 Fake Awards Ceremony</div>
+      <div style="font-size:13px;color:#888;margin-bottom:16px">The Reading Room is now in session. These awards are fake. The shade is real.</div>
+      <div id="roast-content">
+        <button class="btn btn-gradient" style="width:100%" onclick="generateRoast()">🎭 Generate Awards & Roasts</button>
+      </div>
+    </div>
   </div>
 
   <!-- LEADERBOARD -->
@@ -614,22 +621,20 @@ function getR(qid) {
 function getR(qid) {
   const r = results[qid];
   if (!r) return {
-    episodes:     [{},{},{} ],
-    semiEpisodes: [{},{}    ],
-    advances: false, finalist: false, comeback: false,
+    episodes:[{},{},{}], semiEpisodes:[{},{}],
+    advances:false, finalist:false, comeback:false, eliminated:false
   };
-  // Migrate old string-based episodes to object format
   const migrateEp = ep => {
     if (!ep || typeof ep === "object") return ep || {};
-    // Old format was a single string like "win", "top2" etc
     return { [ep]: true };
   };
   return {
     episodes:     (r.episodes     || [{},{},{}]).map(migrateEp),
     semiEpisodes: (r.semiEpisodes || [{},{}   ]).map(migrateEp),
-    advances:  r.advances  || false,
-    finalist:  r.finalist  || false,
-    comeback:  r.comeback  || false,
+    advances:    r.advances    || false,
+    finalist:    r.finalist    || false,
+    comeback:    r.comeback    || false,
+    eliminated:  r.eliminated  || false,
   };
 }
 
@@ -796,9 +801,10 @@ function parseResults(raw) {
     out[qid] = {
       episodes:     Array.isArray(r.episodes)     ? r.episodes.map(migrateEp)     : [{},{},{}],
       semiEpisodes: Array.isArray(r.semiEpisodes) ? r.semiEpisodes.map(migrateEp) : [{},{}],
-      advances:  !!r.advances,
-      finalist:  !!r.finalist,
-      comeback:  !!r.comeback,
+      advances:   !!r.advances,
+      finalist:   !!r.finalist,
+      comeback:   !!r.comeback,
+      eliminated: !!r.eliminated,
     };
   });
   return out;
@@ -834,10 +840,13 @@ function renderResultsBrackets() {
         <div style="border-top:1px solid #e8d8ff;padding-top:10px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">
           <div class="tag" id="adv-${q.id}"
             style="display:inline-block;border-color:${r.advances?"#9c6fde":"#eee"};background:${r.advances?"#e8d8ff":"transparent"};color:${r.advances?"#9c6fde":"#bbb"}"
-            onclick="toggleAdvances('${q.id}')">⬆️ Advances to Semis (+10)</div>
+            onclick="toggleAdvances('${q.id}')">⬆️ Advances (+10)</div>
+          <div class="tag" id="elim-flag-${q.id}"
+            style="display:inline-block;border-color:${r.eliminated?"#e53935":"#eee"};background:${r.eliminated?"#fff3f3":"transparent"};color:${r.eliminated?"#e53935":"#bbb"}"
+            onclick="toggleEliminated('${q.id}')">❌ Eliminated</div>
           <div class="tag" id="comeback-${q.id}"
             style="display:inline-block;border-color:${r.comeback?"#00897b":"#eee"};background:${r.comeback?"#e0f2f1":"transparent"};color:${r.comeback?"#00897b":"#bbb"}"
-            onclick="toggleComeback('${q.id}')">🔄 Comeback Queen</div>
+            onclick="toggleComeback('${q.id}')">🔄 Comeback</div>
         </div>
       </div>`;
     });
@@ -973,6 +982,18 @@ function toggleAdvances(qid) {
   // Re-render semis and finale sections since advancing queens change
   renderResultsSemis();
   renderResultsFinale();
+}
+
+function toggleEliminated(qid) {
+  if (!results[qid]) results[qid] = { episodes:[{},{},{}], semiEpisodes:[{},{}], advances:false, finalist:false, comeback:false, eliminated:false };
+  results[qid].eliminated = !results[qid].eliminated;
+  const el = document.getElementById(`elim-flag-${qid}`);
+  const on = results[qid].eliminated;
+  if (el) {
+    el.style.borderColor = on ? "#e53935" : "#eee";
+    el.style.background  = on ? "#fff3f3" : "transparent";
+    el.style.color       = on ? "#e53935" : "#bbb";
+  }
 }
 
 function toggleComeback(qid) {
@@ -1324,10 +1345,14 @@ async function loadLeaderboard() {
 // Eps 10-11: all advancing queens, Ep 12: all advancing queens (finale)
 function getMvqEligibleQueens(episodeLabel) {
   const num = parseInt(episodeLabel.replace(/\D/g,""), 10);
+  if (episodeLabel.includes("Top 3") || episodeLabel.includes("Finale")) {
+    // Top 3 prediction — all advancing queens
+    const advancing = ALL_QUEENS.filter(q => getR(q.id).advances && !getR(q.id).eliminated);
+    return advancing.length ? advancing : ALL_QUEENS.filter(q => getR(q.id).advances);
+  }
   if (num >= 1 && num <= 3) return QUEENS.Pink;
   if (num >= 4 && num <= 6) return QUEENS.Orange;
   if (num >= 7 && num <= 9) return QUEENS.Purple;
-  // Semis / finale — use advancing queens, fall back to all
   const advancing = ALL_QUEENS.filter(q => getR(q.id).advances);
   return advancing.length ? advancing : ALL_QUEENS;
 }
@@ -1362,6 +1387,7 @@ const MVQ_SCHEDULE = [
   { episode:"Episode 9",  openUTC:"2026-06-26T23:00:00Z", closeUTC:"2026-07-03T23:00:00Z" },
   { episode:"Episode 10", openUTC:"2026-07-03T23:00:00Z", closeUTC:"2026-07-10T23:00:00Z" },
   { episode:"Episode 11", openUTC:"2026-07-10T23:00:00Z", closeUTC:"2026-07-17T23:00:00Z" },
+  { episode:"Finale Top 3 Prediction", openUTC:"2026-07-10T20:00:00Z", closeUTC:"2026-07-17T23:00:00Z" },
   { episode:"Episode 12", openUTC:"2026-07-17T23:00:00Z", closeUTC:"2026-07-24T23:00:00Z" },
 ];
 
@@ -1520,11 +1546,19 @@ function renderMvqOpen() {
     const votedNames  = vote.votedPlayers || Object.keys(votes);
     const voteCount   = vote.voteCount   ?? votedNames.length;
     const isExpired   = vote.isExpired;
-    const borderColor = isExpired ? "#888" : "#ff8c42";
+    const isTop3      = vote.episode.includes("Top 3");
+    const borderColor = isExpired ? "#888" : isTop3 ? "#ffd700" : "#ff8c42";
 
     const statusBadge = isExpired
       ? `<span style="background:#888;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">⏰ Awaiting Close</span>`
-      : `<span style="background:#ff8c42;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">🗳️ VOTE OPEN</span>`;
+      : isTop3
+        ? `<span style="background:#ffd700;color:#2d0036;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">👑 FINALE VOTE</span>`
+        : `<span style="background:#ff8c42;color:#fff;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700">🗳️ VOTE OPEN</span>`;
+
+    const top3Description = isTop3 ? `
+      <div style="background:#fffbe6;border:2px solid #ffd700;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#2d0036">
+        👑 <strong>Finale Prediction!</strong> Pick who you think will make the <strong>Top 3</strong> in the Lip Sync Smackdown for the Crown. The queen you pick who advances furthest wins you bonus bragging rights!
+      </div>` : "";
 
     const countSection = isExpired
       ? `<div style="background:#f4f4f4;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#555;font-weight:700">
@@ -1564,6 +1598,7 @@ function renderMvqOpen() {
         ${statusBadge}
       </div>
       <div style="color:#555;font-size:13px;margin-bottom:10px">🗓️ Deadline: ${vote.deadline}</div>
+      ${top3Description || ""}
       ${countSection}
       ${voteSection}
       ${isExpired ? "" : `
@@ -2301,10 +2336,10 @@ async function loadRankings() {
       const wins   = allEps.filter(e => e && e.win).length;
       const top2s  = allEps.filter(e => e && e.top2).length;
       const elims  = allEps.filter(e => e && e.elim).length;
-      const isEliminated = elims > 0 && !r.advances && !r.finalist && !r.comeback;
-      const status = r.finalist  ? "👑 Winner"
-                   : r.advances  ? "⬆️ Semis"
-                   : r.comeback  ? "🔄 Comeback"
+      const isEliminated = r.eliminated && !r.advances && !r.finalist && !r.comeback;
+      const status = r.finalist   ? "👑 Winner"
+                   : r.advances   ? "⬆️ Semis"
+                   : r.comeback   ? "🔄 Comeback"
                    : isEliminated ? "❌ Eliminated"
                    : wins > 0 || top2s > 0 ? "🔥 Competing"
                    : "🏃 Active";
@@ -2756,6 +2791,123 @@ function renderAnalyticsDashboard(el, events) {
        <p style="font-size:12px;color:#888">Most people vote around <strong>${(()=>{const h=Object.entries(mvqByHour).sort((a,b)=>b[1]-a[1])[0]?.[0]||12; return h<12?h+"am":h==12?"12pm":(h-12)+"pm";})()}</strong> MT</p>`) +
     card("⏳ Time to Vote After Episode Drops", timeToVoteRows) +
     card("👤 Player Engagement", playerRows || '<p style="color:#bbb;font-size:13px">No player data yet</p>');
+}
+
+// ── SEASON WRAP ROAST ─────────────────────────────────────────────────────────
+async function generateRoast() {
+  const el = document.getElementById("roast-content");
+  el.innerHTML = '<div class="spinner"></div><p style="text-align:center;color:#888;font-size:13px;margin-top:8px">The library is being built… this may take a moment 📚</p>';
+
+  try {
+    // Gather player data for roasting
+    const [playersData, resultsData, mvqData, chatData] = await Promise.all([
+      apiFetch({ action:"getAll" }),
+      apiFetch({ action:"getResults" }),
+      apiFetch({ action:"getMvq" }).catch(()=>({past:[]})),
+      apiFetch({ action:"getChat" }).catch(()=>({messages:[]})),
+    ]);
+
+    results = parseResults(resultsData.results || {});
+    const players  = playersData.players || [];
+    const pastVotes = mvqData.past || [];
+    const messages  = chatData.messages || [];
+
+    // MVQ correct per player
+    const mvqCorrect = {};
+    const mvqTotal   = {};
+    pastVotes.forEach(vote => {
+      Object.entries(vote.votes || {}).forEach(([player, qid]) => {
+        mvqTotal[player] = (mvqTotal[player]||0) + 1;
+        if ((vote.winners||[]).includes(qid)) mvqCorrect[player] = (mvqCorrect[player]||0)+1;
+      });
+    });
+
+    // Chat count per player
+    const chatCount = {};
+    messages.forEach(m => { chatCount[m.player] = (chatCount[m.player]||0)+1; });
+
+    // Scores
+    const mvqBonus = {};
+    pastVotes.forEach(vote => {
+      Object.entries(vote.votes||{}).forEach(([p,qid])=>{
+        if((vote.winners||[]).includes(qid)) mvqBonus[p]=(mvqBonus[p]||0)+2;
+      });
+    });
+
+    const scored = players.map(p => ({
+      name:       p.player,
+      queens:     (p.queens||[]).map(qid => ALL_QUEENS.find(q=>q.id===qid)?.name).filter(Boolean),
+      score:      p.queens.reduce((s,qid)=>s+calcPts(qid),0) + (mvqBonus[p.player]||0),
+      mvqCorrect: mvqCorrect[p.player] || 0,
+      mvqTotal:   mvqTotal[p.player]   || 0,
+      chatMsgs:   chatCount[p.player]  || 0,
+      pickedWinner: (p.queens||[]).some(qid => getR(qid).finalist),
+    })).sort((a,b)=>b.score-a.score);
+
+    const winner   = scored[0];
+    const loser    = scored[scored.length-1];
+    const mostMVQ  = [...scored].sort((a,b)=>b.mvqCorrect-a.mvqCorrect)[0];
+    const leastMVQ = [...scored].sort((a,b)=>a.mvqCorrect-b.mvqCorrect)[0];
+    const chatQueen = [...scored].sort((a,b)=>b.chatMsgs-a.chatMsgs)[0];
+    const silent    = [...scored].sort((a,b)=>a.chatMsgs-b.chatMsgs)[0];
+
+    const prompt = `You are the host of a fun fake awards ceremony for a RuPaul's All Stars 11 pick'em competition among friends. Write short, witty, loving roasts for each player. Be playful, reference Drag Race culture, and keep it fun — not mean. Use drag slang naturally.
+
+Here are the players and their stats:
+${scored.map(p => `- ${p.name}: Score ${p.score}pts, picked queens: ${p.queens.join(", ")}, MVQ correct: ${p.mvqCorrect}/${p.mvqTotal}, chat messages: ${p.chatMsgs}, picked the winner: ${p.pickedWinner}`).join("\n")}
+
+The leaderboard winner is ${winner.name}.
+The person at the bottom is ${loser.name}.
+Best MVQ predictor: ${mostMVQ.name} (${mostMVQ.mvqCorrect} correct).
+Most active in Reading Room: ${chatQueen.name} (${chatQueen.chatMsgs} messages).
+Most silent: ${silent.name} (${silent.chatMsgs} messages).
+
+Return ONLY a JSON array (no markdown, no explanation) with this structure:
+[
+  { "player": "Name", "award": "Award Title", "roast": "2-3 sentence roast that's funny and specific to their stats" },
+  ...
+]
+
+Make sure every player gets an award. Award titles should be creative and drag-themed. Examples: "Miss Congeniality", "Oracle of the Werk Room", "Silent But Deadly", "The Eternal Optimist", etc.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data  = await response.json();
+    const text  = data.content?.[0]?.text || "";
+    const clean = text.replace(/```json|```/g,"").trim();
+    const awards = JSON.parse(clean);
+
+    const colors = ["#ff6b9d","#ff8c42","#9c6fde","#00897b","#e91e8c","#2196f3","#795548","#607d8b","#ff5722","#009688"];
+
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,#ffd700,#ff8c42);border-radius:16px;padding:16px 20px;text-align:center;margin-bottom:20px">
+        <div style="font-size:36px;margin-bottom:4px">👑</div>
+        <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:18px;color:#2d0036">The Werk Room Awards</div>
+        <div style="font-size:13px;color:#2d0036;opacity:.8;margin-top:4px">All Stars 11 Pick 'Em Season</div>
+      </div>
+      ${awards.map((a,i) => `
+        <div style="background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);border-left:4px solid ${colors[i%colors.length]}">
+          <div style="font-size:12px;font-weight:700;color:${colors[i%colors.length]};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🏅 ${a.award}</div>
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:17px;color:#2d0036;margin-bottom:8px">${a.player}</div>
+          <div style="font-size:14px;color:#555;line-height:1.6">${a.roast}</div>
+        </div>`).join("")}
+      <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="generateRoast()">🎭 Regenerate Awards</button>
+    `;
+  } catch(e) {
+    el.innerHTML = `
+      <div style="background:#fff3f3;border-radius:12px;padding:16px;color:#c00;font-size:13px;margin-bottom:12px">
+        Couldn't generate awards: ${e.message}
+      </div>
+      <button class="btn btn-gradient" style="width:100%" onclick="generateRoast()">Try Again</button>`;
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
