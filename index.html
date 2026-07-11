@@ -1375,9 +1375,14 @@ async function loadLeaderboard() {
 function getMvqEligibleQueens(episodeLabel) {
   const num = parseInt(episodeLabel.replace(/\D/g,""), 10);
   if (episodeLabel.includes("Top 3") || episodeLabel.includes("Finale")) {
-    // Top 3 prediction — all advancing queens
+    // Top 3 prediction — prefer advancing non-eliminated queens
     const advancing = ALL_QUEENS.filter(q => getR(q.id).advances && !getR(q.id).eliminated);
-    return advancing.length ? advancing : ALL_QUEENS.filter(q => getR(q.id).advances);
+    if (advancing.length) return advancing;
+    // Fall back to any advancing queens
+    const anyAdvancing = ALL_QUEENS.filter(q => getR(q.id).advances);
+    if (anyAdvancing.length) return anyAdvancing;
+    // Results not loaded yet — show all queens so voting isn't blocked
+    return ALL_QUEENS;
   }
   if (num >= 1 && num <= 3) return QUEENS.Pink;
   if (num >= 4 && num <= 6) return QUEENS.Orange;
@@ -1485,7 +1490,13 @@ async function loadMvqView() {
     const closedEps = new Set(mvqPastVotes.map(v => v.episode));
     const openEps   = new Set(sheetOpen.map(v => v.episode));
 
-    // Auto-open in Sheet if not already there
+  // Fetch results so getMvqEligibleQueens knows which queens are advancing
+  try {
+    const rd = await apiFetch({ action:"getResults" });
+    results = parseResults(rd.results || {});
+  } catch(e) {}
+
+  // Auto-open in Sheet if not already there
     for (const ep of scheduledOpen) {
       if (!closedEps.has(ep.episode) && !openEps.has(ep.episode)) {
         apiPost({ action:"openMvqVote", episode:ep.episode, deadline:getDeadlineFromClose(ep.closeUTC) });
