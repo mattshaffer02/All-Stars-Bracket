@@ -1586,7 +1586,8 @@ function renderMvqOpen() {
 
     const top3Description = isTop3 ? `
       <div style="background:#fffbe6;border:2px solid #ffd700;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#2d0036">
-        👑 <strong>Finale Prediction!</strong> Pick who you think will make the <strong>Top 3</strong> in the Lip Sync Smackdown for the Crown. The queen you pick who advances furthest wins you bonus bragging rights!
+        👑 <strong>Finale Prediction!</strong> Pick who you think will make the <strong>Top 3</strong> in the Lip Sync Smackdown for the Crown.<br><br>
+        ⭐ <strong>+5 points for each queen you correctly predict</strong> makes the Top 3 — up to <strong>+15 points</strong> if you nail all three! Results are awarded when the admin closes this vote after the finale airs.
       </div>` : "";
 
     const countSection = isExpired
@@ -1650,18 +1651,69 @@ function selectMvqPlayer(vi, name) {
   if (!mvqVoteState[vi]) mvqVoteState[vi] = {};
   mvqVoteState[vi].player = name;
   mvqVoteState[vi].queen  = null;
+  mvqVoteState[vi].picks  = []; // for Top 3 multi-select
 
   document.getElementById(`mvq-player-select-${vi}`).style.display = "none";
   document.getElementById(`mvq-picker-${vi}`).style.display = "block";
-  document.getElementById(`mvq-voting-as-${vi}`).textContent = `Voting as: ${name}`;
 
   const vote     = mvqOpenVotes[vi];
+  const isTop3   = vote.episode.includes("Top 3");
   const existing = (vote.votes || {})[name];
+
+  document.getElementById(`mvq-voting-as-${vi}`).textContent =
+    isTop3 ? `Voting as: ${name} — pick up to 3 queens` : `Voting as: ${name}`;
+
+  if (isTop3) {
+    // Parse existing picks (stored as JSON array string or array)
+    let existingPicks = [];
+    if (existing) {
+      try { existingPicks = typeof existing === "string" ? JSON.parse(existing) : existing; }
+      catch { existingPicks = [existing]; }
+    }
+    mvqVoteState[vi].picks = existingPicks;
+
+    const eligibleQueens = getMvqEligibleQueens(vote.episode);
+    const list = document.getElementById(`mvq-queen-list-${vi}`);
+
+    list.innerHTML = `
+      <div style="background:#fffbe6;border:1px solid #ffd700;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:13px;color:#666">
+        👇 Tap up to <strong>3 queens</strong> you think will make the finale Top 3.
+        <span id="mvq-pick-count-${vi}" style="font-weight:700;color:#c8a000"> (${existingPicks.length}/3 selected)</span>
+      </div>` +
+      eligibleQueens.map(q => {
+        const sel = existingPicks.includes(q.id);
+        return `<div onclick="selectMvqQueenTop3(${vi},'${q.id}')" id="mvq-qrow-${vi}-${q.id}"
+          style="display:flex;justify-content:space-between;align-items:center;
+            background:${sel?"#fffbe6":"#fff"};border:2px solid ${sel?"#ffd700":"#dddddd"};
+            border-radius:12px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:all .15s">
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px;color:#2d0036">${q.emoji} ${q.name}</div>
+            <div style="color:#888;font-size:12px">${q.season}</div>
+          </div>
+          <div id="mvq-qchk-${vi}-${q.id}" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;
+            background:${sel?"#ffd700":"transparent"};border:2px solid ${sel?"#ffd700":"#ccc"};
+            display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">${sel?"✓":""}</div>
+        </div>`;
+      }).join("");
+
+    // Update submit button label and state
+    const btn = document.getElementById(`mvq-submit-${vi}`);
+    btn.textContent = "Submit Top 3 Picks";
+    btn.disabled = existingPicks.length === 0;
+
+    const fb = document.getElementById(`mvq-feedback-${vi}`);
+    if (existing && fb) {
+      fb.style.display = "block";
+      fb.textContent   = "✏️ Already voted — tap to change your picks.";
+    } else if (fb) {
+      fb.style.display = "none";
+    }
+    return;
+  }
+
+  // Regular single-pick MVQ flow
   if (existing) mvqVoteState[vi].queen = existing;
-
-  // Only show queens from the relevant bracket for this episode
   const eligibleQueens = getMvqEligibleQueens(vote.episode);
-
   const list = document.getElementById(`mvq-queen-list-${vi}`);
   list.innerHTML = eligibleQueens.map(q => {
     const sel = existing === q.id;
@@ -1681,12 +1733,51 @@ function selectMvqPlayer(vi, name) {
 
   const btn = document.getElementById(`mvq-submit-${vi}`);
   btn.disabled = !existing;
+  btn.textContent = "Submit Vote";
   const fb = document.getElementById(`mvq-feedback-${vi}`);
-  if (existing) {
-    fb.style.display  = "block";
-    fb.textContent    = "✏️ Already voted — tap to change.";
-  } else {
+  if (existing && fb) {
+    fb.style.display = "block";
+    fb.textContent   = "✏️ Already voted — tap to change.";
+  } else if (fb) {
     fb.style.display = "none";
+  }
+}
+
+function selectMvqQueenTop3(vi, qid) {
+  if (!mvqVoteState[vi]) mvqVoteState[vi] = { picks: [] };
+  if (!mvqVoteState[vi].picks) mvqVoteState[vi].picks = [];
+  const picks = mvqVoteState[vi].picks;
+  const idx   = picks.indexOf(qid);
+
+  if (idx > -1) {
+    // Deselect
+    picks.splice(idx, 1);
+    const row = document.getElementById(`mvq-qrow-${vi}-${qid}`);
+    const chk = document.getElementById(`mvq-qchk-${vi}-${qid}`);
+    if (row) { row.style.background = "#fff"; row.style.borderColor = "#dddddd"; }
+    if (chk) { chk.style.background = "transparent"; chk.style.borderColor = "#ccc"; chk.textContent = ""; }
+  } else {
+    // Select (max 3)
+    if (picks.length >= 3) {
+      toast("You can only pick 3 queens for the Top 3!");
+      return;
+    }
+    picks.push(qid);
+    const row = document.getElementById(`mvq-qrow-${vi}-${qid}`);
+    const chk = document.getElementById(`mvq-qchk-${vi}-${qid}`);
+    if (row) { row.style.background = "#fffbe6"; row.style.borderColor = "#ffd700"; }
+    if (chk) { chk.style.background = "#ffd700"; chk.style.borderColor = "#ffd700"; chk.textContent = "✓"; }
+  }
+
+  // Update count label and submit button
+  const countEl = document.getElementById(`mvq-pick-count-${vi}`);
+  if (countEl) countEl.textContent = ` (${picks.length}/3 selected)`;
+  const btn = document.getElementById(`mvq-submit-${vi}`);
+  if (btn) {
+    btn.disabled = picks.length === 0;
+    btn.textContent = picks.length === 3
+      ? "Submit Top 3 Picks ✓"
+      : `Submit (${picks.length}/3 picked)`;
   }
 }
 
@@ -1714,36 +1805,46 @@ function resetMvqPlayer(vi) {
 }
 
 async function submitMvqVote(vi, episode) {
-  const state = mvqVoteState[vi] || {};
-  if (!state.player || !state.queen) return;
+  const state  = mvqVoteState[vi] || {};
+  const isTop3 = episode.includes("Top 3");
+
+  // Validate
+  if (!state.player) return;
+  if (isTop3 && (!state.picks || state.picks.length === 0)) return;
+  if (!isTop3 && !state.queen) return;
+
   const btn = document.getElementById(`mvq-submit-${vi}`);
   btn.textContent = "Saving…"; btn.disabled = true;
+
+  // The value to store — array JSON for Top 3, string for regular
+  const voteValue = isTop3 ? JSON.stringify(state.picks) : state.queen;
+
   try {
-    // Save to localStorage immediately (always works)
+    // Save to localStorage
     const localVotes = loadLocalMvqVotes();
     if (!localVotes[episode]) localVotes[episode] = {};
-    localVotes[episode][state.player] = state.queen;
+    localVotes[episode][state.player] = voteValue;
     saveLocalMvqVotes(localVotes);
 
-    // Update in-memory state
+    // Update in-memory
     if (!mvqOpenVotes[vi].votes) mvqOpenVotes[vi].votes = {};
-    mvqOpenVotes[vi].votes[state.player] = state.queen;
+    mvqOpenVotes[vi].votes[state.player] = voteValue;
 
-    // Sync to Sheet and get back the live count
+    // Sync to Sheet
     try {
-      const res = await apiPost({ action:"saveMvqVote", episode, player:state.player, queen:state.queen });
-      if (res.success && res.voteCount !== undefined) {
-        // Update live count from Sheet (reflects all devices)
-        updateMvqCount(vi, res.voteCount);
-      }
+      const res = await apiPost({ action:"saveMvqVote", episode, player:state.player, queen:voteValue });
+      if (res.success && res.voteCount !== undefined) updateMvqCount(vi, res.voteCount);
       logAnalyticsEvent("mvq_vote", episode);
-    } catch(syncErr) {
-      // Sheet sync failed — that's ok, local vote is saved
-    }
+    } catch(syncErr) {}
 
-    // Update UI feedback
     const fb = document.getElementById(`mvq-feedback-${vi}`);
-    if (fb) { fb.style.display="block"; fb.textContent="✅ Vote saved!"; fb.style.color="#2e7d32"; }
+    if (fb) {
+      fb.style.display = "block";
+      fb.textContent   = isTop3
+        ? `✅ Top 3 picks saved! (${state.picks.length} queens selected)`
+        : "✅ Vote saved!";
+      fb.style.color = "#2e7d32";
+    }
 
     // Update player pill to show checkmark
     const playerPills = document.getElementById(`mvq-player-select-${vi}`);
@@ -1757,11 +1858,12 @@ async function submitMvqVote(vi, episode) {
         }
       });
     }
-    toast("✅ Vote saved!");
+    toast(isTop3 ? `✅ Top 3 picks saved!` : "✅ Vote saved!");
   } catch(e) {
-    toast("❌ Error saving vote. Try again.");
+    toast("❌ Error saving. Try again.");
   }
-  btn.textContent = "Submit Vote"; btn.disabled = false;
+  btn.textContent = isTop3 ? "Submit Top 3 Picks" : "Submit Vote";
+  btn.disabled = false;
 }
 
 // Update the live vote count display for a given vote card
@@ -1981,12 +2083,66 @@ async function closeMvqVote(episode) {
     }
 
     // Step 2: Calculate winners
+    const isTop3Vote = episode.includes("Top 3");
+
+    if (isTop3Vote) {
+      // Show admin a queen picker to mark the ACTUAL Top 3 before revealing
+      const eligible = getMvqEligibleQueens(episode);
+      const existing = document.getElementById("mvq-reveal-overlay");
+      if (existing) existing.remove();
+
+      const overlay = document.createElement("div");
+      overlay.id = "mvq-reveal-overlay";
+      overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+
+      let actualTop3 = [];
+
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:24px;padding:28px 24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto">
+          <div style="text-align:center;margin-bottom:16px">
+            <div style="font-size:40px;margin-bottom:6px">👑</div>
+            <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:20px;color:#2d0036">Who made the actual Top 3?</div>
+            <div style="font-size:13px;color:#888;margin-top:4px">Tap the 3 queens who made the finale Top 3.</div>
+          </div>
+          <div id="top3-admin-count" style="background:#fffbe6;border:2px solid #ffd700;border-radius:10px;padding:8px 14px;text-align:center;font-weight:700;color:#c8a000;margin-bottom:14px;font-size:14px">
+            0 of 3 selected
+          </div>
+          <div id="top3-admin-list">
+            ${eligible.map(q => `
+              <div onclick="toggleTop3Admin('${q.id}')" id="top3-row-${q.id}"
+                style="display:flex;justify-content:space-between;align-items:center;
+                  background:#fff;border:2px solid #ddd;border-radius:12px;
+                  padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s">
+                <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036">
+                  ${q.emoji} ${q.name}
+                </div>
+                <div id="top3-chk-${q.id}" style="width:28px;height:28px;border-radius:50%;
+                  background:transparent;border:2px solid #ccc;
+                  display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px"></div>
+              </div>`).join("")}
+          </div>
+          <button id="top3-confirm-btn" onclick="confirmTop3Close('${episode}')"
+            style="width:100%;margin-top:16px;padding:14px;border-radius:14px;border:none;
+              background:#ccc;color:#fff;cursor:not-allowed;
+              font-family:'Playfair Display',serif;font-size:16px;font-weight:700"
+            disabled>
+            Reveal Results
+          </button>
+          <button onclick="document.getElementById('mvq-reveal-overlay').remove()"
+            style="width:100%;margin-top:8px;padding:10px;border-radius:14px;border:2px solid #ddd;
+              background:#fff;color:#888;cursor:pointer;font-family:'Playfair Display',serif;font-size:14px">
+            Cancel
+          </button>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      if (closeBtn) { closeBtn.textContent = `🔒 Close "${episode}" Vote & Reveal Results`; closeBtn.disabled = false; }
+      return;
+    }
+
     const tally = {};
     Object.values(allVotes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
     const maxVotes = Math.max(...Object.values(tally), 0);
-    // For Top 3 votes: winners = all queens who received votes (admin selects which are correct)
-    // For regular MVQ: winners = queen(s) with most votes
-    const isTop3Vote = episode.includes("Top 3");
     const winners = maxVotes > 0 ? Object.keys(tally).filter(qid => tally[qid] === maxVotes) : [];
     const bonusPlayers = [];
     Object.entries(allVotes)
@@ -2025,6 +2181,144 @@ async function closeMvqVote(episode) {
   }
 }
 
+
+// Admin picks the actual Top 3 before closing
+let _adminTop3Picks = [];
+
+function toggleTop3Admin(qid) {
+  const idx = _adminTop3Picks.indexOf(qid);
+  const row = document.getElementById(`top3-row-${qid}`);
+  const chk = document.getElementById(`top3-chk-${qid}`);
+
+  if (idx > -1) {
+    _adminTop3Picks.splice(idx, 1);
+    if (row) { row.style.background = "#fff"; row.style.borderColor = "#ddd"; }
+    if (chk) { chk.style.background = "transparent"; chk.style.borderColor = "#ccc"; chk.textContent = ""; }
+  } else {
+    if (_adminTop3Picks.length >= 3) { toast("You've already selected 3 queens!"); return; }
+    _adminTop3Picks.push(qid);
+    if (row) { row.style.background = "#fffbe6"; row.style.borderColor = "#ffd700"; }
+    if (chk) { chk.style.background = "#ffd700"; chk.style.borderColor = "#ffd700"; chk.textContent = "✓"; }
+  }
+
+  const countEl = document.getElementById("top3-admin-count");
+  if (countEl) countEl.textContent = `${_adminTop3Picks.length} of 3 selected`;
+
+  const confirmBtn = document.getElementById("top3-confirm-btn");
+  if (confirmBtn) {
+    const ready = _adminTop3Picks.length === 3;
+    confirmBtn.disabled = !ready;
+    confirmBtn.style.background = ready ? "linear-gradient(135deg,#ffd700,#ff8c42)" : "#ccc";
+    confirmBtn.style.cursor     = ready ? "pointer" : "not-allowed";
+    confirmBtn.style.color      = ready ? "#2d0036" : "#fff";
+  }
+}
+
+async function confirmTop3Close(episode) {
+  if (_adminTop3Picks.length !== 3) { toast("Select exactly 3 queens first!"); return; }
+
+  const confirmBtn = document.getElementById("top3-confirm-btn");
+  if (confirmBtn) { confirmBtn.textContent = "Saving…"; confirmBtn.disabled = true; }
+
+  try {
+    // Fetch all votes from Sheet
+    const fullData  = await apiFetch({ action:"getMvqAdmin", episode });
+    const sheetVotes = fullData?.votes || {};
+    const localVotes = loadLocalMvqVotes()[episode] || {};
+    const allVotes   = { ...localVotes, ...sheetVotes };
+
+    const winners = [..._adminTop3Picks];
+
+    // Award +5 per correct pick per player
+    const bonusPlayers = [];
+    Object.entries(allVotes).forEach(([player, val]) => {
+      let picks = [];
+      try { picks = typeof val === "string" ? JSON.parse(val) : val; } catch { picks = [val]; }
+      if (!Array.isArray(picks)) picks = [picks];
+      picks.forEach(qid => {
+        if (winners.includes(qid)) bonusPlayers.push(player);
+      });
+    });
+
+    // Save to Sheet
+    await apiPost({ action:"closeMvqVote", episode, winners:JSON.stringify(winners), bonusPlayers:JSON.stringify(bonusPlayers), votes:JSON.stringify(allVotes) });
+
+    // Save locally
+    const vote = mvqOpenVotes.find(v => v.episode === episode) || { episode, deadline:"" };
+    const closedVote = { episode, deadline:vote.deadline, votes:allVotes, winners, bonusPlayers, closed:true };
+    const allLocal = loadLocalMvqVotes();
+    allLocal[`__closed__${episode}`] = closedVote;
+    saveLocalMvqVotes(allLocal);
+
+    mvqOpenVotes = mvqOpenVotes.filter(v => v.episode !== episode);
+    mvqPastVotes = [closedVote, ...mvqPastVotes];
+
+    // Remove overlay and show reveal
+    const overlay = document.getElementById("mvq-reveal-overlay");
+    if (overlay) overlay.remove();
+    _adminTop3Picks = [];
+
+    showMvqRevealTop3(closedVote, allVotes);
+    renderMvqOpen(); renderMvqPast(); renderMvqAdminActions();
+    toast(`✅ Top 3 results revealed! Points awarded.`);
+  } catch(e) {
+    toast("❌ Error: " + (e.message || e.toString()));
+    if (confirmBtn) { confirmBtn.textContent = "Reveal Results"; confirmBtn.disabled = false; }
+  }
+}
+
+function showMvqRevealTop3(vote, allVotes) {
+  const winners = vote.winners || [];
+  const winnerQueens = winners.map(qid => ALL_QUEENS.find(q => q.id === qid)).filter(Boolean);
+
+  // Show each player's picks and how many they got right
+  const playerRows = Object.entries(allVotes).map(([player, val]) => {
+    let picks = [];
+    try { picks = typeof val === "string" ? JSON.parse(val) : val; } catch { picks = [val]; }
+    if (!Array.isArray(picks)) picks = [picks];
+    const correct = picks.filter(qid => winners.includes(qid));
+    const pts = correct.length * 5;
+    return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px">
+      <div>
+        <span style="font-weight:700;color:#2d0036">${player}</span>
+        <div style="font-size:12px;color:#888;margin-top:2px">
+          ${picks.map(qid => {
+            const q = ALL_QUEENS.find(x=>x.id===qid);
+            const isRight = winners.includes(qid);
+            return `<span style="color:${isRight?"#2e7d32":"#999"}">${isRight?"✅":"❌"} ${q?q.name.split(" ")[0]:qid}</span>`;
+          }).join("  ")}
+        </div>
+      </div>
+      <div style="font-weight:800;color:${pts>0?"#c8a000":"#999"};font-size:16px;text-align:right">
+        ${pts>0?"+"+pts+" pts":"–"}
+      </div>
+    </div>`;
+  }).join("");
+
+  const overlay = document.createElement("div");
+  overlay.id = "mvq-reveal-overlay";
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:24px;padding:28px 24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:48px;margin-bottom:8px">👑</div>
+        <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:22px;color:#2d0036">Finale Top 3 Results</div>
+      </div>
+      <div style="background:#fffbe6;border-radius:16px;padding:16px 20px;text-align:center;margin-bottom:20px;border:3px solid #ffd700">
+        <div style="font-size:13px;color:#888;font-weight:700;margin-bottom:8px">THE TOP 3</div>
+        ${winnerQueens.map(q=>`<div style="font-family:'Playfair Display',serif;font-weight:800;font-size:20px;color:#c8a000">👑 ${q.emoji} ${q.name}</div>`).join("")}
+      </div>
+      <div style="margin-bottom:24px">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036;margin-bottom:12px">How Everyone Did</div>
+        ${playerRows}
+      </div>
+      <button onclick="document.getElementById('mvq-reveal-overlay').remove()"
+        style="width:100%;padding:14px;border-radius:14px;border:none;background:#9c6fde;color:#fff;cursor:pointer;font-family:'Playfair Display',serif;font-size:16px;font-weight:700">
+        Got it! Close
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
 
 function showMvqReveal(vote) {
   const votes   = vote.votes || {};
