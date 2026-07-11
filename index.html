@@ -1286,30 +1286,46 @@ async function loadLeaderboard() {
       const queenRows = p.queens.map(id => {
         const q = ALL_QUEENS.find(x => x.id === id);
         if (!q) return null;
-        const r = getR(id);
+        const r      = getR(id);
         const allEps = [...r.episodes, ...r.semiEpisodes];
-        const qPts = calcPts(id);
+        const qPts   = calcPts(id);
+        const bkt    = queenBracket[id] || "Purple";
+
         const reasons = [];
         allEps.forEach(ep => {
           if (ep && ep.win)    reasons.push("🏆 Win");
           if (ep && ep.top2)   reasons.push("🥈 Top 2");
           if (ep && ep.bottom) reasons.push("👇 Bottom 2");
         });
-        if (r.advances) reasons.push("⬆️ Semis");
-        if (r.finalist) reasons.push("👑 Winner");
+        if (r.advances)                reasons.push("⬆️ Semis");
+        if (r.finalist)                reasons.push("👑 Winner");
         if (r.eliminated && !r.finalist) reasons.push("❌ Eliminated");
-        const isElim = r.eliminated || allEps.some(e=>e?.elim);
-        const badge = r.finalist?"👑":r.advances && !r.eliminated?"⬆️":allEps.some(e=>e?.win)?"🏆":allEps.some(e=>e?.top2)?"🥈":allEps.some(e=>e?.bottom)?"👇":isElim?"❌":"";
+
+        const isElim    = r.eliminated || allEps.some(e => e && e.elim);
+        const isRedRow  = qPts < 0 || (r.eliminated && !r.finalist);
         const reasonStr = reasons.length ? reasons.join(", ") : "No points yet";
-        const bkt = queenBracket[id] || "Purple";
-        const isRedRow = qPts < 0 || (r.eliminated && !r.finalist);
+
+        let badge = "";
+        if (r.finalist)                        badge = "👑";
+        else if (r.advances && !r.eliminated)  badge = "⬆️";
+        else if (allEps.some(e => e && e.win)) badge = "🏆";
+        else if (allEps.some(e => e && e.top2)) badge = "🥈";
+        else if (allEps.some(e => e && e.bottom)) badge = "👇";
+        else if (isElim)                       badge = "❌";
+
+        const rowBg      = isRedRow ? "#fff3f3"      : bracketBg[bkt];
+        const rowBorder  = isRedRow ? "#e53935"      : bracketDot[bkt];
+        const nameColor  = isRedRow ? "#e53935"      : bracketText[bkt];
+        const ptsColor   = isRedRow ? "#e53935"      : qPts > 0 ? bracketDot[bkt] : "#ccc";
+        const ptsDisplay = qPts > 0 ? "+" + qPts : "" + qPts;
+
         return `<div style="display:flex;justify-content:space-between;align-items:center;
           padding:6px 10px;border-radius:10px;margin-bottom:4px;
-          background:${isRedRow?"#fff3f3":bracketBg[bkt]};border-left:3px solid ${isRedRow?"#e53935":bracketDot[bkt]}">
-          <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:${isRedRow?"#e53935":bracketText[bkt]}">${badge} ${q.name.split(" ")[0]}</span>
+          background:${rowBg};border-left:3px solid ${rowBorder}">
+          <span style="font-size:13px;font-family:'Playfair Display',serif;font-weight:700;color:${nameColor}">${badge} ${q.name.split(" ")[0]}</span>
           <span style="display:flex;align-items:center;gap:8px">
             <span style="font-size:11px;color:#999">${reasonStr}</span>
-            <span style="font-weight:800;font-size:14px;color:${isRedRow?"#e53935":qPts>0?bracketDot[bkt]:"#ccc"};min-width:28px;text-align:right">${qPts>0?"+":""}${qPts}</span>
+            <span style="font-weight:800;font-size:14px;color:${ptsColor};min-width:28px;text-align:right">${ptsDisplay}</span>
           </span>
         </div>`;
       }).filter(Boolean).join("");
