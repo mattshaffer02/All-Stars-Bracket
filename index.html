@@ -1664,11 +1664,18 @@ function selectMvqPlayer(vi, name) {
     isTop3 ? `Voting as: ${name} — pick up to 3 queens` : `Voting as: ${name}`;
 
   if (isTop3) {
-    // Parse existing picks (stored as JSON array string or array)
+    // Parse existing picks — handle old single-string format and new JSON array format
     let existingPicks = [];
     if (existing) {
-      try { existingPicks = typeof existing === "string" ? JSON.parse(existing) : existing; }
-      catch { existingPicks = [existing]; }
+      try {
+        const parsed = JSON.parse(existing);
+        existingPicks = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        // Old format was a bare queen ID string — wrap it in array
+        existingPicks = [existing];
+      }
+      // Validate — filter out any IDs that aren't real queens
+      existingPicks = existingPicks.filter(id => ALL_QUEENS.some(q => q.id === id));
     }
     mvqVoteState[vi].picks = existingPicks;
 
@@ -1698,15 +1705,23 @@ function selectMvqPlayer(vi, name) {
 
     // Update submit button label and state
     const btn = document.getElementById(`mvq-submit-${vi}`);
-    btn.textContent = "Submit Top 3 Picks";
-    btn.disabled = existingPicks.length === 0;
+    if (btn) {
+      btn.disabled    = existingPicks.length === 0;
+      btn.textContent = existingPicks.length === 3
+        ? "Update Top 3 Picks ✓"
+        : existingPicks.length > 0
+          ? `Submit (${existingPicks.length}/3 picked)`
+          : "Submit Top 3 Picks";
+    }
 
     const fb = document.getElementById(`mvq-feedback-${vi}`);
-    if (existing && fb) {
-      fb.style.display = "block";
-      fb.textContent   = "✏️ Already voted — tap to change your picks.";
-    } else if (fb) {
-      fb.style.display = "none";
+    if (fb) {
+      if (existingPicks.length > 0) {
+        fb.style.display = "block";
+        fb.textContent   = `✏️ You picked ${existingPicks.length} queen${existingPicks.length!==1?"s":""} — tap to change.`;
+      } else {
+        fb.style.display = "none";
+      }
     }
     return;
   }
@@ -1799,9 +1814,15 @@ function selectMvqQueen(vi, qid) {
 }
 
 function resetMvqPlayer(vi) {
-  if (mvqVoteState[vi]) { mvqVoteState[vi].player = null; mvqVoteState[vi].queen = null; }
-  document.getElementById(`mvq-player-select-${vi}`).style.display = "block";
-  document.getElementById(`mvq-picker-${vi}`).style.display = "none";
+  if (mvqVoteState[vi]) {
+    mvqVoteState[vi].player = null;
+    mvqVoteState[vi].queen  = null;
+    mvqVoteState[vi].picks  = [];
+  }
+  const playerSelect = document.getElementById(`mvq-player-select-${vi}`);
+  const picker       = document.getElementById(`mvq-picker-${vi}`);
+  if (playerSelect) playerSelect.style.display = "block";
+  if (picker)       picker.style.display       = "none";
 }
 
 async function submitMvqVote(vi, episode) {
