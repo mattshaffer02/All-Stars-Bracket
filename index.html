@@ -1301,6 +1301,7 @@ async function loadLeaderboard() {
         const isElim = r.eliminated || allEps.some(e=>e?.elim);
         const badge = r.finalist?"👑":r.advances && !r.eliminated?"⬆️":allEps.some(e=>e?.win)?"🏆":allEps.some(e=>e?.top2)?"🥈":allEps.some(e=>e?.bottom)?"👇":isElim?"❌":"";
         const reasonStr = reasons.length ? reasons.join(", ") : "No points yet";
+        const bkt = queenBracket[id] || "Purple";
         const isRedRow = qPts < 0 || (r.eliminated && !r.finalist);
         return `<div style="display:flex;justify-content:space-between;align-items:center;
           padding:6px 10px;border-radius:10px;margin-bottom:4px;
