@@ -260,7 +260,7 @@
           <div style="display:flex;align-items:center;gap:12px">
             <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:22px;color:#9c6fde;min-width:36px;text-align:center">2</div>
             <div style="font-size:12px;color:#888">
-              <strong style="color:#2d0036">Group bonus pick</strong> — your 3rd pick (the queen who didn't make the Top 2) acts like an MVQ vote. Whoever the group picked most as their "bonus queen," everyone who chose her earns +2 pts.
+              <strong style="color:#2d0036">Group bonus pick</strong> — any of your 3 picks that aren't Crystal or Joey count toward a group tally. Whoever the group picked most as their "bonus queen," everyone who picked her earns +2 pts.
             </div>
           </div>
         </div>
@@ -2317,28 +2317,27 @@ async function confirmTop3Close(episode) {
       });
     });
 
-    // ── Bonus pick MVQ scoring: the 3rd pick (one not in Top 2) ──────────────
-    // Each player's "bonus pick" = whichever of their picks didn't make the Top 2
-    // Tally the group's most popular bonus pick
+    // ── Bonus pick MVQ scoring ─────────────────────────────────────────────
+    // Tally all picks that aren't in the actual Top 2 (Crystal & Joey)
+    // Most popular non-Top-2 queen earns everyone who picked her +2
     const bonusPickTally = {};
     Object.entries(playerPicks).forEach(([player, picks]) => {
-      const bonusPick = picks.find(qid => !winners.includes(qid));
-      if (bonusPick) {
-        bonusPickTally[bonusPick] = (bonusPickTally[bonusPick] || 0) + 1;
-      }
+      picks.forEach(qid => {
+        if (!winners.includes(qid)) {
+          bonusPickTally[qid] = (bonusPickTally[qid] || 0) + 1;
+        }
+      });
     });
 
-    // Find the most popular bonus pick
     const maxBonusVotes = Math.max(...Object.values(bonusPickTally), 0);
     const bonusWinners  = maxBonusVotes > 0
       ? Object.keys(bonusPickTally).filter(qid => bonusPickTally[qid] === maxBonusVotes)
       : [];
 
-    // Players who picked the most popular bonus queen get +2
+    // Players who picked any of the bonus winners get +2
     const bonusPickPlayers = [];
     Object.entries(playerPicks).forEach(([player, picks]) => {
-      const bonusPick = picks.find(qid => !winners.includes(qid));
-      if (bonusPick && bonusWinners.includes(bonusPick)) {
+      if (picks.some(qid => !winners.includes(qid) && bonusWinners.includes(qid))) {
         bonusPickPlayers.push(player);
       }
     });
@@ -2407,18 +2406,12 @@ function showMvqRevealTop3(vote, allVotes, playerPicks, bonusPickTally) {
   }
 
   const playerRows = Object.entries(playerPicks).map(([player, picks]) => {
-    const top2Correct  = picks.filter(qid => winners.includes(qid));
-    const bonusPick    = picks.find(qid => !winners.includes(qid));
-    const bonusCorrect = bonusPick && bonusWinners.includes(bonusPick);
-    const bonusQ       = bonusPick ? ALL_QUEENS.find(q => q.id === bonusPick) : null;
-    const top2Pts      = top2Correct.length * 5;
-    const bonusPts     = bonusCorrect ? 2 : 0;
-    const totalPts     = top2Pts + bonusPts;
-
-    const top2Names = top2Correct.map(qid => {
-      const q = ALL_QUEENS.find(x => x.id === qid);
-      return q ? q.name.split(" ")[0] : qid;
-    });
+    const top2Correct   = picks.filter(qid => winners.includes(qid));
+    const nonTop2Picks  = picks.filter(qid => !winners.includes(qid));
+    const bonusCorrect  = nonTop2Picks.some(qid => bonusWinners.includes(qid));
+    const top2Pts       = top2Correct.length * 5;
+    const bonusPts      = bonusCorrect ? 2 : 0;
+    const totalPts      = top2Pts + bonusPts;
 
     return `<div style="background:${totalPts>0?"#f9f6ff":"#fafafa"};border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid ${totalPts>0?"#e8d8ff":"#eee"}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -2429,17 +2422,17 @@ function showMvqRevealTop3(vote, allVotes, playerPicks, bonusPickTally) {
         ${picks.map(qid => {
           const q       = ALL_QUEENS.find(x => x.id === qid);
           const isTop2  = winners.includes(qid);
-          const isBonus = qid === bonusPick;
-          const correct = isTop2 || (isBonus && bonusCorrect);
+          const isBonus = !isTop2 && bonusWinners.includes(qid);
+          const correct = isTop2 || isBonus;
           const name    = q ? q.name : qid;
-          const pts     = isTop2 ? "+5" : (isBonus && bonusCorrect ? "+2" : "");
+          const pts     = isTop2 ? "+5" : isBonus ? "+2" : "";
+          const label   = isTop2 ? "Top 2" : "Bonus pick";
           return `<div style="display:flex;justify-content:space-between;align-items:center;
             background:${correct?"#e8f5e9":"#fff"};border:1px solid ${correct?"#a5d6a7":"#eee"};
             border-radius:8px;padding:6px 10px">
             <span style="font-size:13px;color:${correct?"#2e7d32":"#999"}">
               ${correct?"✅":"❌"} ${name}
-              ${isTop2?`<span style="font-size:11px;color:#888"> · Top 2</span>`:""}
-              ${isBonus?`<span style="font-size:11px;color:#888"> · Bonus pick</span>`:""}
+              <span style="font-size:11px;color:#aaa"> · ${label}</span>
             </span>
             <span style="font-weight:800;font-size:13px;color:${correct?"#2e7d32":"#bbb"}">${pts}</span>
           </div>`;
