@@ -2019,39 +2019,49 @@ function renderMvqPast() {
     el.innerHTML = '<p style="color:#bbb;font-size:14px;text-align:center;padding:20px 0">No closed votes yet.</p>';
     return;
   }
-  el.innerHTML = mvqPastVotes.map((vote, vi) => {
-    const votes   = vote.votes || {};
-    const tally   = {};
-    Object.values(votes).forEach(qid => { tally[qid] = (tally[qid]||0) + 1; });
-    const maxVotes = Math.max(...Object.values(tally), 0);
-    const winners  = Object.keys(tally).filter(qid => tally[qid] === maxVotes);
 
-    const tallyHtml = Object.entries(tally)
-      .sort((a,b) => b[1]-a[1])
-      .map(([qid, count]) => {
-        const q   = ALL_QUEENS.find(x => x.id === qid);
-        const isW = winners.includes(qid);
-        return `<div style="display:flex;justify-content:space-between;align-items:center;
-          padding:8px 12px;border-radius:10px;margin-bottom:6px;
-          background:${isW?"#ffe0c8":"#f4f4f4"};
-          border:2px solid ${isW?"#ff8c42":"transparent"}">
-          <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px;color:#2d0036">
-            ${isW?"⭐ ":""}${q?q.emoji+" "+q.name:qid}
-          </span>
-          <span style="font-weight:700;color:${isW?"#c94f00":"#999"}">${count} vote${count!==1?"s":""}</span>
-        </div>`;
-      }).join("");
+  el.innerHTML = mvqPastVotes.map((vote, vi) => {
+    const votes   = vote.votes   || {};
+    const winners = vote.winners || [];
+    const isTop3  = vote.episode.includes("Top 3");
+
+    if (isTop3) {
+      return renderPastTop3Vote(vote, vi);
+    }
+
+    // ── Regular MVQ vote ──────────────────────────────────────────────────
+    const tally = {};
+    Object.values(votes).forEach(val => {
+      // Guard against any array values sneaking in
+      const qid = typeof val === "string" && !val.startsWith("[") ? val : null;
+      if (qid) tally[qid] = (tally[qid]||0) + 1;
+    });
+    const maxVotes  = Math.max(...Object.values(tally), 0);
+    const mvqWinners = winners.length ? winners : Object.keys(tally).filter(q => tally[q] === maxVotes);
+
+    const tallyHtml = Object.entries(tally).sort((a,b)=>b[1]-a[1]).map(([qid, count]) => {
+      const q   = ALL_QUEENS.find(x => x.id === qid);
+      const isW = mvqWinners.includes(qid);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;
+        padding:8px 12px;border-radius:10px;margin-bottom:6px;
+        background:${isW?"#ffe0c8":"#f4f4f4"};border:2px solid ${isW?"#ff8c42":"transparent"}">
+        <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px;color:#2d0036">
+          ${isW?"⭐ ":""}${q?q.emoji+" "+q.name:qid}
+        </span>
+        <span style="font-weight:700;color:${isW?"#c94f00":"#999"}">${count} vote${count!==1?"s":""}</span>
+      </div>`;
+    }).join("");
 
     const voterHtml = Object.entries(votes).map(([player, qid]) => {
       const q   = ALL_QUEENS.find(x => x.id === qid);
-      const isW = winners.includes(qid);
+      const isW = mvqWinners.includes(qid);
       return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #eee">
         <span style="color:#555">${player}</span>
         <span style="font-weight:700;color:${isW?"#c94f00":"#999"}">${q?q.emoji+" "+q.name.split(" ")[0]:qid}${isW?" ⭐":""}</span>
       </div>`;
     }).join("");
 
-    const winnerNames = winners.map(qid => { const q=ALL_QUEENS.find(x=>x.id===qid); return q?q.name:qid; }).join(" & ");
+    const winnerNames = mvqWinners.map(qid => { const q=ALL_QUEENS.find(x=>x.id===qid); return q?q.name:qid; }).join(" & ");
 
     return `<div style="background:#fff;border-radius:18px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -2071,6 +2081,98 @@ function renderMvqPast() {
       <div id="past-voters-${vi}" style="display:none;margin-top:8px">${voterHtml}</div>
     </div>`;
   }).join("");
+}
+
+function renderPastTop3Vote(vote, vi) {
+  const votes        = vote.votes        || {};
+  const winners      = vote.winners      || []; // actual Top 2
+  const bonusWinners = vote.bonusWinners || [];
+  const bonusPickPlayers = vote.bonusPickPlayers || [];
+
+  // Parse each player's picks from JSON array
+  const playerPicks = {};
+  Object.entries(votes).forEach(([player, val]) => {
+    let picks = [];
+    try { picks = typeof val === "string" ? JSON.parse(val) : val; } catch { picks = [val]; }
+    if (!Array.isArray(picks)) picks = [picks];
+    playerPicks[player] = picks;
+  });
+
+  // Tally non-Top-2 picks for bonus
+  const bonusTally = {};
+  Object.values(playerPicks).forEach(picks => {
+    picks.filter(qid => !winners.includes(qid)).forEach(qid => {
+      bonusTally[qid] = (bonusTally[qid]||0) + 1;
+    });
+  });
+  const bonusSorted = Object.entries(bonusTally).sort((a,b)=>b[1]-a[1]);
+
+  // Top 2 queen names
+  const top2Queens = winners.map(qid => ALL_QUEENS.find(q=>q.id===qid)).filter(Boolean);
+  const bonusQueens = bonusWinners.map(qid => ALL_QUEENS.find(q=>q.id===qid)).filter(Boolean);
+
+  // Per-player results
+  const playerRows = Object.entries(playerPicks).map(([player, picks]) => {
+    const top2Correct  = picks.filter(qid => winners.includes(qid));
+    const bonusCorrect = picks.some(qid => !winners.includes(qid) && bonusWinners.includes(qid));
+    const top2Pts      = top2Correct.length * 5;
+    const bonusPts     = bonusCorrect ? 2 : 0;
+    const totalPts     = top2Pts + bonusPts;
+
+    return `<div style="background:${totalPts>0?"#f9f6ff":"#fafafa"};border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid ${totalPts>0?"#e8d8ff":"#eee"}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036">${player}</span>
+        <span style="font-weight:800;font-size:17px;color:${totalPts>0?"#9c6fde":"#bbb"}">${totalPts>0?"+"+totalPts+" pts":"0 pts"}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${picks.map(qid => {
+          const q      = ALL_QUEENS.find(x => x.id === qid);
+          const name   = q ? (q.emoji + " " + q.name) : qid;
+          const isTop2 = winners.includes(qid);
+          const isBonus = !isTop2 && bonusWinners.includes(qid);
+          const correct = isTop2 || isBonus;
+          const pts     = isTop2 ? "+5" : isBonus ? "+2" : "";
+          const label   = isTop2 ? "Top 2 ✅" : isBonus ? "Bonus ⭐" : "❌";
+          const bg      = isTop2 ? "#fffbe6" : isBonus ? "#e8d8ff" : "#fafafa";
+          const border  = isTop2 ? "#ffd700"  : isBonus ? "#9c6fde"  : "#eee";
+          const textColor = isTop2 ? "#c8a000" : isBonus ? "#4a148c" : "#aaa";
+          return `<div style="display:flex;justify-content:space-between;align-items:center;
+            background:${bg};border:1px solid ${border};border-radius:8px;padding:7px 10px">
+            <span style="font-size:13px;font-weight:700;color:${textColor}">${name}</span>
+            <span style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:${textColor}">${label}</span>
+              ${pts?`<span style="font-weight:800;font-size:13px;color:${textColor}">${pts}</span>`:""}
+            </span>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+
+  return `<div style="background:#fff;border-radius:18px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036">👑 Finale Prediction</div>
+      <span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">CLOSED</span>
+    </div>
+
+    <!-- Actual Top 2 -->
+    <div style="background:#fffbe6;border:2px solid #ffd700;border-radius:12px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">👑 Actual Top 2 · +5 each</div>
+      ${top2Queens.map(q=>`<div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#c8a000">${q.emoji} ${q.name}</div>`).join("")}
+    </div>
+
+    <!-- Bonus pick winner -->
+    ${bonusQueens.length ? `<div style="background:#e8d8ff;border:2px solid #9c6fde;border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">⭐ Group Bonus Pick · +2</div>
+      ${bonusQueens.map(q=>`<div style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#4a148c">${q.emoji} ${q.name}</div>`).join("")}
+      <div style="font-size:12px;color:#666;margin-top:4px">${bonusPickPlayers.length} player${bonusPickPlayers.length!==1?"s":""} who picked her earned +2 pts</div>
+    </div>` : ""}
+
+    <!-- Per-player results -->
+    <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:14px;color:#2d0036;margin-bottom:10px">Results by Player</div>
+    ${playerRows}
+  </div>`;
 }
 
 async function openMvqVote() {
