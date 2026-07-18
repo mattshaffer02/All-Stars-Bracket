@@ -134,7 +134,7 @@
   <button data-view="wrap" onclick="showView('wrap')">🎬 Wrap</button>
   <button data-view="picks" onclick="showView('picks')">🗳️ Picks</button>
   <button data-view="results" onclick="showView('results')">📋 Results</button>
-  <button data-view="analytics" onclick="showView('analytics')">📈 Stats</button>
+  <button data-view="admin" onclick="showView('admin')">🔐 Admin</button>
 </nav>
 
 <div class="container">
@@ -249,11 +249,19 @@
           </div>
         </div>
 
-        <div style="display:flex;align-items:center;gap:12px;background:#fffbe6;border-radius:12px;padding:12px 14px;border:2px solid #ffd700;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
-          <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:26px;color:#c8a000;min-width:36px;text-align:center">5</div>
-          <div>
-            <div style="font-weight:700;font-size:14px;color:#2d0036">👑 Top 3 Prediction (Finale)</div>
-            <div style="font-size:12px;color:#888;margin-top:2px">Predict who makes the finale Top 3. Each correct queen earns you +5 pts — up to +15 if you nail all three!</div>
+        <div style="background:#fffbe6;border-radius:12px;padding:14px;border:2px solid #ffd700;box-shadow:0 1px 6px rgba(0,0,0,0.06)">
+          <div style="font-weight:700;font-size:14px;color:#2d0036;margin-bottom:10px">👑 Finale Prediction</div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+            <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:22px;color:#c8a000;min-width:36px;text-align:center">5</div>
+            <div style="font-size:12px;color:#888">
+              <strong style="color:#2d0036">Per queen in the actual Top 2</strong> — you picked 3 queens before the finale. Each one who made the final lip sync earns you +5 pts (up to +10 total).
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-family:'Playfair Display',serif;font-weight:800;font-size:22px;color:#9c6fde;min-width:36px;text-align:center">2</div>
+            <div style="font-size:12px;color:#888">
+              <strong style="color:#2d0036">Group bonus pick</strong> — your 3rd pick (the queen who didn't make the Top 2) acts like an MVQ vote. Whoever the group picked most as their "bonus queen," everyone who chose her earns +2 pts.
+            </div>
           </div>
         </div>
       </div>
@@ -444,20 +452,38 @@
     <div id="leaderboard-content"><div class="spinner"></div></div>
   </div>
 
-  <!-- ANALYTICS -->
-  <div id="view-analytics" class="view">
-    <h2>📈 Analytics</h2>
-    <div id="analytics-locked">
-      <div style="display:flex;gap:10px;margin-bottom:20px">
-        <input type="password" id="analytics-pw" placeholder="Admin password…"
-          onkeydown="if(event.key==='Enter')unlockAnalytics()" />
-        <button class="btn btn-purple" onclick="unlockAnalytics()">Unlock</button>
+  <!-- ADMIN -->
+  <div id="view-admin" class="view">
+    <h2>🔐 Admin</h2>
+    <div id="admin-gate">
+      <div style="background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+        <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#2d0036;margin-bottom:12px">Enter Admin Password</div>
+        <div style="display:flex;gap:10px">
+          <input type="password" id="global-admin-pw" placeholder="Password…"
+            onkeydown="if(event.key==='Enter')unlockGlobalAdmin()" style="flex:1" />
+          <button class="btn btn-purple" onclick="unlockGlobalAdmin()">Unlock</button>
+        </div>
       </div>
-      <p style="color:#bbb;font-size:14px;text-align:center;padding:20px 0">🔒 Admin only</p>
+      <p style="color:#bbb;font-size:14px;text-align:center">🔒 One password unlocks Results, MVQ controls, and Analytics.</p>
     </div>
-    <div id="analytics-content" style="display:none">
-      <button class="btn btn-outline btn-sm" style="margin-bottom:20px" onclick="loadAnalytics()">↻ Refresh</button>
-      <div id="analytics-dashboard"><div class="spinner"></div></div>
+
+    <div id="admin-panel" style="display:none">
+      <!-- Section tabs -->
+      <div class="section-tabs" style="margin-bottom:20px">
+        <div class="section-tab active" onclick="showAdminSection('mvq-controls',this)"><div>⭐ MVQ</div><div>Controls</div></div>
+        <div class="section-tab" onclick="showAdminSection('analytics-section',this)"><div>📈 Stats</div><div>Analytics</div></div>
+      </div>
+
+      <!-- MVQ Controls -->
+      <div id="admin-mvq-controls">
+        <div id="mvq-admin-open-actions"></div>
+      </div>
+
+      <!-- Analytics -->
+      <div id="admin-analytics-section" style="display:none">
+        <button class="btn btn-outline btn-sm" style="margin-bottom:20px" onclick="loadAnalytics()">↻ Refresh</button>
+        <div id="analytics-dashboard"><div class="spinner"></div></div>
+      </div>
     </div>
   </div>
 
@@ -467,6 +493,17 @@
 // ── CONFIG — keep your existing Apps Script URL and password ──────────────────
 const API = "https://script.google.com/macros/s/AKfycbyhaF4vw2qmVcqDTvm2v4rJEdre328UxmizfklyRbgW0bxSQlXzWwe6ziltCnwE0PPXNg/exec";
 const ADMIN_PASSWORD = "rpdr2026";
+
+// ── Global admin state — one login unlocks everything ─────────────────────────
+let adminUnlocked     = false;
+let mvqAdminUnlocked  = false; // kept for compatibility, mirrors adminUnlocked
+let analyticsUnlocked = false; // kept for compatibility, mirrors adminUnlocked
+
+function unlockAllAdmin(pw) {
+  if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return false; }
+  adminUnlocked = mvqAdminUnlocked = analyticsUnlocked = true;
+  return true;
+}
 
 // Season started May 8 — picks are now locked
 const PICKS_LOCKED = true;
@@ -578,7 +615,7 @@ function showView(id) {
   if (id === "chat")        loadChat();
   if (id === "rankings")    loadRankings();
   if (id === "wrap")        loadWrap();
-  if (id === "analytics")   loadAnalyticsView();
+  if (id === "admin")       loadAdminView();
   if (id === "picks") {
     const banner = document.getElementById("picks-locked-banner");
     if (banner) banner.style.display = PICKS_LOCKED ? "block" : "none";
@@ -778,9 +815,9 @@ async function savePicks() {
 // ── RESULTS ───────────────────────────────────────────────────────────────────
 function unlockAdmin() {
   const pw = document.getElementById("admin-pw").value;
-  if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
+  if (!unlockAllAdmin(pw)) return;
   document.getElementById("results-locked").style.display = "none";
-  document.getElementById("results-form").style.display = "block";
+  document.getElementById("results-form").style.display   = "block";
   loadAndRenderResults();
 }
 
@@ -1440,7 +1477,7 @@ function getDeadlineFromClose(closeUTC) {
   return d.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric", timeZone:"America/Denver" })
     + " at 5:00pm MT";
 }
-let mvqAdminUnlocked = false;
+// mvqAdminUnlocked declared in global admin state above
 let mvqOpenVotes = [];   // array of open vote objects
 let mvqPastVotes = [];
 // Per-vote state: { [episode]: { player, queen } }
@@ -2054,25 +2091,20 @@ async function openMvqVote() {
 
 async function unlockMvqAdmin() {
   const pw = document.getElementById("mvq-admin-pw").value;
-  if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
-  mvqAdminUnlocked = true;
+  if (!unlockAllAdmin(pw)) return;
 
-  // Reload MVQ data with admin flag set — expired votes will now be included
   await loadMvqView();
 
-  // Restore admin panel visibility (loadMvqView may re-render the section)
   const locked = document.getElementById("mvq-admin-locked");
   const panel  = document.getElementById("mvq-admin-panel");
   if (locked) locked.style.display = "none";
   if (panel)  panel.style.display  = "block";
 
   renderMvqAdminActions();
-
-  if (!mvqOpenVotes.length) {
-    toast("✅ Admin unlocked — no open votes to close right now.");
-  } else {
-    toast(`✅ Admin unlocked — ${mvqOpenVotes.length} vote(s) ready to close.`);
-  }
+  toast(mvqOpenVotes.length
+    ? `✅ Admin unlocked — ${mvqOpenVotes.length} vote(s) ready to close.`
+    : "✅ Admin unlocked — no open votes to close right now."
+  );
 }
 
 function renderMvqAdminActions() {
@@ -2383,20 +2415,34 @@ function showMvqRevealTop3(vote, allVotes, playerPicks, bonusPickTally) {
     const bonusPts     = bonusCorrect ? 2 : 0;
     const totalPts     = top2Pts + bonusPts;
 
-    return `<div style="padding:10px 0;border-bottom:1px solid #eee">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-weight:700;color:#2d0036;font-size:14px">${player}</span>
-        <span style="font-weight:800;color:${totalPts>0?"#c8a000":"#999"};font-size:16px">${totalPts>0?"+"+totalPts+" pts":"–"}</span>
+    const top2Names = top2Correct.map(qid => {
+      const q = ALL_QUEENS.find(x => x.id === qid);
+      return q ? q.name.split(" ")[0] : qid;
+    });
+
+    return `<div style="background:${totalPts>0?"#f9f6ff":"#fafafa"};border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid ${totalPts>0?"#e8d8ff":"#eee"}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:#2d0036">${player}</span>
+        <span style="font-weight:800;font-size:18px;color:${totalPts>0?"#9c6fde":"#bbb"}">${totalPts>0?"+"+totalPts:"0"} pts</span>
       </div>
-      <div style="font-size:12px;color:#888">
+      <div style="display:flex;flex-direction:column;gap:4px">
         ${picks.map(qid => {
-          const q      = ALL_QUEENS.find(x => x.id === qid);
-          const isTop2 = winners.includes(qid);
+          const q       = ALL_QUEENS.find(x => x.id === qid);
+          const isTop2  = winners.includes(qid);
           const isBonus = qid === bonusPick;
           const correct = isTop2 || (isBonus && bonusCorrect);
-          return `<span style="margin-right:8px;color:${correct?"#2e7d32":"#999"}">
-            ${correct?"✅":"❌"} ${q?q.name.split(" ")[0]:qid}${isTop2?" (+5)":""}${isBonus&&bonusCorrect?" ⭐+2":""}
-          </span>`;
+          const name    = q ? q.name : qid;
+          const pts     = isTop2 ? "+5" : (isBonus && bonusCorrect ? "+2" : "");
+          return `<div style="display:flex;justify-content:space-between;align-items:center;
+            background:${correct?"#e8f5e9":"#fff"};border:1px solid ${correct?"#a5d6a7":"#eee"};
+            border-radius:8px;padding:6px 10px">
+            <span style="font-size:13px;color:${correct?"#2e7d32":"#999"}">
+              ${correct?"✅":"❌"} ${name}
+              ${isTop2?`<span style="font-size:11px;color:#888"> · Top 2</span>`:""}
+              ${isBonus?`<span style="font-size:11px;color:#888"> · Bonus pick</span>`:""}
+            </span>
+            <span style="font-weight:800;font-size:13px;color:${correct?"#2e7d32":"#bbb"}">${pts}</span>
+          </div>`;
         }).join("")}
       </div>
     </div>`;
@@ -3033,21 +3079,56 @@ async function loadWrap() {
   }
 }
 
-// ── ANALYTICS VIEW ────────────────────────────────────────────────────────────
-let analyticsUnlocked = false;
+// ── ADMIN VIEW ────────────────────────────────────────────────────────────────
+function unlockGlobalAdmin() {
+  const pw = document.getElementById("global-admin-pw").value;
+  if (!unlockAllAdmin(pw)) return;
 
-function unlockAnalytics() {
-  const pw = document.getElementById("analytics-pw").value;
-  if (pw !== ADMIN_PASSWORD) { toast("❌ Wrong password"); return; }
-  analyticsUnlocked = true;
-  document.getElementById("analytics-locked").style.display  = "none";
-  document.getElementById("analytics-content").style.display = "block";
+  document.getElementById("admin-gate").style.display  = "none";
+  document.getElementById("admin-panel").style.display = "block";
+
+  // Also unlock Results and MVQ silently
+  const rl = document.getElementById("results-locked");
+  const rf = document.getElementById("results-form");
+  if (rl) rl.style.display = "none";
+  if (rf) rf.style.display = "block";
+
+  const ml = document.getElementById("mvq-admin-locked");
+  const mp = document.getElementById("mvq-admin-panel");
+  if (ml) ml.style.display = "none";
+  if (mp) mp.style.display = "block";
+
+  // Load data for admin sections
+  loadAndRenderResults();
+  loadMvqView().then(() => renderMvqAdminActions());
   loadAnalytics();
+
+  toast("✅ Admin unlocked — all sections accessible.");
+}
+
+function showAdminSection(id, tabEl) {
+  document.querySelectorAll("#admin-panel .section-tab").forEach(t => t.classList.remove("active"));
+  if (tabEl) tabEl.classList.add("active");
+  document.getElementById("admin-mvq-controls").style.display    = id === "mvq-controls"     ? "block" : "none";
+  document.getElementById("admin-analytics-section").style.display = id === "analytics-section" ? "block" : "none";
+}
+
+function loadAdminView() {
+  if (adminUnlocked) {
+    document.getElementById("admin-gate").style.display  = "none";
+    document.getElementById("admin-panel").style.display = "block";
+    renderMvqAdminActions();
+    if (document.getElementById("admin-analytics-section").style.display !== "none") {
+      loadAnalytics();
+    }
+  }
 }
 
 function loadAnalyticsView() {
   if (analyticsUnlocked) loadAnalytics();
 }
+
+function unlockAnalytics() {} // kept for compatibility
 
 async function loadAnalytics() {
   const el = document.getElementById("analytics-dashboard");
